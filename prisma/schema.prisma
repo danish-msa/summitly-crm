@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Agent {
+  id          String    @id @default(uuid())
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  jobTitle    String?   @map("job_title")
+  companyName String?   @map("company_name")
+  email       String    @unique
+  emailOptOut Boolean   @default(false) @map("email_opt_out")
+  phone1      String?
+  phone2      String?
+  fax         String?
+  
+  // Location Information
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  zipCode     String?   @map("zip_code")
+  
+  // Additional Fields
+  deals       String[]  @default([])
+  dateOfBirth DateTime? @map("date_of_birth")
+  reviews     Decimal?  @db.Decimal(3, 2)
+  owner       String?
+  tags        String[]  @default([])
+  source      String?
+  industry    String?
+  currency    String?
+  language    String?
+  description String?   @db.Text
+  
+  // Status & Rating
+  status      String    @default("Active")
+  rating      Decimal?  @db.Decimal(3, 2)
+  
+  // Image
+  image       String?
+  
+  // Agent-Specific Fields
+  licenseNumber       String?   @map("license_number")
+  licenseExpiryDate   DateTime? @map("license_expiry_date")
+  brokerageStartDate  DateTime? @map("brokerage_start_date")
+  teamOffice          String?   @map("team_office")
+  commissionSplit     Json?     @map("commission_split") // JSON for flexible commission structure
+  bankingInfo         Json?     @map("banking_info") // Encrypted banking information
+  emergencyContact    Json?     @map("emergency_contact") // { name, phone, relationship, email? }
+  notes               String?   @db.Text // Internal comments/notes
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("agents")
+}

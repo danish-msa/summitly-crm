@@ -1,0 +1,67 @@
+/**
+ * Sample Agents List Data
+ * This will be replaced with actual database queries later
+ */
+
+export const AgentsListData = [
+  {
+    key: "1",
+    Name: "John Smith",
+    Role: "Sales Agent",
+    Phone: "1234567890",
+    Tags: "Collab",
+    Location: "USA",
+    Rating: "4.5",
+    Image: "avatar-19.jpg",
+    Flags: "us.svg",
+    Status: "Active",
+  },
+  {
+    key: "2",
+    Name: "Sarah Johnson",
+    Role: "Support Agent",
+    Phone: "+1 989757485",
+    Tags: "Promotion",
+    Location: "UAE",
+    Rating: "5.0",
+    Image: "avatar-20.jpg",
+    Flags: "ae.svg",
+    Status: "Active",
+  },
+  {
+    key: "3",
+    Name: "Michael Brown",
+    Role: "Senior Agent",
+    Phone: "+1 546555455",
+    Tags: "Collab",
+    Location: "Germany",
+    Rating: "4.0",
+    Image: "avatar-21.jpg",
+    Flags: "de.svg",
+    Status: "Active",
+  },
+  {
+    key: "4",
+    Name: "Emily Davis",
+    Role: "Lead Agent",
+    Phone: "+1 454478787",
+    Tags: "VIP",
+    Location: "France",
+    Rating: "4.8",
+    Image: "avatar-23.jpg",
+    Flags: "fr.svg",
+    Status: "Active",
+  },
+  {
+    key: "5",
+    Name: "David Wilson",
+    Role: "Field Agent",
+    Phone: "+1 987654321",
+    Tags: "Collab",
+    Location: "UK",
+    Rating: "4.2",
+    Image: "avatar-14.jpg",
+    Flags: "gb.svg",
+    Status: "Inactive",
+  },
+];
