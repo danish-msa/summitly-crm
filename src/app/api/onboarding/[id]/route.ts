@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/database/prisma';
+import { Prisma } from '@prisma/client';
 
 /**
  * GET /api/onboarding/[id]
@@ -44,10 +45,10 @@ export async function GET(
 
     // Calculate progress
     const totalSteps = onboarding.checklist.length;
-    const completedSteps = onboarding.checklist.filter(c => c.isCompleted).length;
-    const requiredSteps = onboarding.checklist.filter(c => c.isRequired).length;
+    const completedSteps = onboarding.checklist.filter((c: { isCompleted: boolean }) => c.isCompleted).length;
+    const requiredSteps = onboarding.checklist.filter((c: { isRequired: boolean }) => c.isRequired).length;
     const completedRequiredSteps = onboarding.checklist.filter(
-      c => c.isRequired && c.isCompleted
+      (c: { isRequired: boolean; isCompleted: boolean }) => c.isRequired && c.isCompleted
     ).length;
 
     const progress = {
