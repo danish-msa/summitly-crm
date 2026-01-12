@@ -10,10 +10,10 @@ import { prisma } from '@/core/database/prisma';
 // GET - Get single agent by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Get agent with Prisma (one line!)
     const agent = await prisma.agent.findUnique({
@@ -48,10 +48,10 @@ export async function GET(
 // PUT - Update agent
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     // Check if agent exists
@@ -146,10 +146,10 @@ export async function PUT(
 // DELETE - Delete agent
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if agent exists
     const existingAgent = await prisma.agent.findUnique({
