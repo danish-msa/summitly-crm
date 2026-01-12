@@ -31,16 +31,24 @@ export async function GET(
 }
 
 /**
- * PUT /api/onboarding/[id]/checklist/[stepId]
+ * PUT /api/onboarding/[id]/checklist
  * Update checklist item
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; stepId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id, stepId } = await params;
+    const { id } = await params;
     const body = await request.json();
+
+    const { stepId } = body;
+    if (!stepId) {
+      return NextResponse.json(
+        { success: false, error: 'stepId is required in request body' },
+        { status: 400 }
+      );
+    }
 
     const checklistItem = await prisma.onboardingChecklist.update({
       where: { id: stepId },
