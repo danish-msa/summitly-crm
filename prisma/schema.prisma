@@ -312,10 +312,51 @@ model TaskTemplate {
   
   // Relations
   tasks       Task[]
+  taskSets    TaskSetTemplate[] // Many-to-many with TaskSet
   
   @@index([isActive])
   @@index([category])
   @@map("task_templates")
+}
+
+// Task Sets - Collections of task templates that can be assigned together
+model TaskSet {
+  id          String    @id @default(uuid())
+  name        String    // Set name (e.g., "Onboarding Set", "Compliance Set")
+  description String?   @db.Text
+  category    String?   // e.g., "Onboarding", "Training", "Compliance"
+  isActive    Boolean   @default(true) @map("is_active")
+  order       Int       @default(0) // Display order
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdBy   String?   @map("created_by") // User ID
+  
+  // Relations
+  templates   TaskSetTemplate[] // Many-to-many with TaskTemplate
+  
+  @@index([isActive])
+  @@index([category])
+  @@map("task_sets")
+}
+
+// Join table for many-to-many relationship between TaskSet and TaskTemplate
+model TaskSetTemplate {
+  id          String    @id @default(uuid())
+  taskSetId   String    @map("task_set_id")
+  taskSet     TaskSet   @relation(fields: [taskSetId], references: [id], onDelete: Cascade)
+  templateId  String    @map("template_id")
+  template    TaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order       Int       @default(0) // Order within the set
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  @@unique([taskSetId, templateId]) // Prevent duplicate templates in same set
+  @@index([taskSetId])
+  @@index([templateId])
+  @@map("task_set_templates")
 }
 
 // Individual task instances linked to agents (and potentially other modules)

@@ -13,10 +13,16 @@ import {
   UpdateTaskRequest,
   CreateTaskTemplateRequest,
   UpdateTaskTemplateRequest,
+  TaskSet,
+  TaskSetResponse,
+  CreateTaskSetRequest,
+  UpdateTaskSetRequest,
+  AssignTaskSetRequest,
 } from '@/core/data/interface/task.interface';
 
 const API_BASE_URL = '/api/tasks';
 const TEMPLATES_API_BASE_URL = '/api/tasks/templates';
+const TASK_SETS_API_BASE_URL = '/api/tasks/sets';
 
 /**
  * Get all tasks
@@ -460,6 +466,171 @@ export async function assignTasksFromTemplates(
     return {
       success: false,
       error: error.message || 'Failed to assign tasks',
+    };
+  }
+}
+
+// ============================================
+// Task Set Service Functions
+// ============================================
+
+/**
+ * Get all task sets
+ */
+export async function getTaskSets(params?: {
+  search?: string;
+  category?: string;
+  isActive?: boolean;
+  includeTemplates?: boolean;
+}): Promise<TaskSetResponse> {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.isActive !== undefined) queryParams.append('isActive', String(params.isActive));
+    if (params?.includeTemplates) queryParams.append('includeTemplates', 'true');
+
+    const url = `${TASK_SETS_API_BASE_URL}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error('Error fetching task sets:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch task sets',
+    };
+  }
+}
+
+/**
+ * Get single task set by ID
+ */
+export async function getTaskSet(id: string): Promise<TaskSetResponse> {
+  try {
+    const response = await fetch(`${TASK_SETS_API_BASE_URL}/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error('Error fetching task set:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch task set',
+    };
+  }
+}
+
+/**
+ * Create new task set
+ */
+export async function createTaskSet(taskSetData: CreateTaskSetRequest): Promise<TaskSetResponse> {
+  try {
+    const response = await fetch(TASK_SETS_API_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(taskSetData),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error('Error creating task set:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create task set',
+    };
+  }
+}
+
+/**
+ * Update task set
+ */
+export async function updateTaskSet(
+  id: string,
+  taskSetData: UpdateTaskSetRequest
+): Promise<TaskSetResponse> {
+  try {
+    const response = await fetch(`${TASK_SETS_API_BASE_URL}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(taskSetData),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error('Error updating task set:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to update task set',
+    };
+  }
+}
+
+/**
+ * Delete task set
+ */
+export async function deleteTaskSet(id: string): Promise<TaskSetResponse> {
+  try {
+    const response = await fetch(`${TASK_SETS_API_BASE_URL}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error('Error deleting task set:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete task set',
+    };
+  }
+}
+
+/**
+ * Assign task set to agent
+ */
+export async function assignTaskSetToAgent(
+  taskSetId: string,
+  assignData: AssignTaskSetRequest
+): Promise<TaskResponse> {
+  try {
+    const response = await fetch(`${TASK_SETS_API_BASE_URL}/${taskSetId}/assign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(assignData),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error('Error assigning task set:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to assign task set',
     };
   }
 }

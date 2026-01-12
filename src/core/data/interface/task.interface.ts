@@ -125,3 +125,58 @@ export interface UpdateTaskTemplateRequest {
   isActive?: boolean;
   order?: number;
 }
+
+// Task Set Interfaces
+export interface TaskSet {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  isActive: boolean;
+  order: number;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  templates?: TaskTemplate[]; // Templates included in this set
+}
+
+export interface TaskSetTemplate {
+  id: string;
+  taskSetId: string;
+  templateId: string;
+  order: number;
+  createdAt?: string;
+  template?: TaskTemplate; // Full template details
+}
+
+export interface TaskSetResponse {
+  success: boolean;
+  data?: TaskSet | TaskSet[];
+  total?: number;
+  error?: string;
+}
+
+export interface CreateTaskSetRequest {
+  name: string;
+  description?: string;
+  category?: string;
+  isActive?: boolean;
+  order?: number;
+  templateIds?: string[]; // Array of template IDs to include in the set
+  createdBy?: string;
+}
+
+export interface UpdateTaskSetRequest {
+  name?: string;
+  description?: string;
+  category?: string;
+  isActive?: boolean;
+  order?: number;
+  templateIds?: string[]; // Array of template IDs to include in the set
+}
+
+export interface AssignTaskSetRequest {
+  taskSetId: string;
+  agentId: string;
+  assignedBy?: string;
+}
