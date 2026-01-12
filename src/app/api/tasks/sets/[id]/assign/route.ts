@@ -85,7 +85,7 @@ export async function POST(
 
     // Create tasks from templates in a transaction
     const tasks = await prisma.$transaction(async (tx) => {
-      const tasksToCreate = activeTemplates.map((tst) => ({
+      const tasksToCreate = activeTemplates.map((tst: any) => ({
         title: tst.template.name,
         description: tst.template.description,
         category: tst.template.category,
