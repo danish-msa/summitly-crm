@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/database/prisma';
-import { Prisma } from '@prisma/client';
 
 /**
  * GET /api/onboarding/[id]
