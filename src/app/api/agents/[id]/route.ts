@@ -69,51 +69,76 @@ export async function PUT(
       );
     }
 
-    // Normalize field names
-    const firstName = body.firstName || body.first_name;
-    const lastName = body.lastName || body.last_name;
+    // Normalize field names - accept both camelCase and snake_case
+    const firstName = body.firstName !== undefined ? (body.firstName || body.first_name || null) : undefined;
+    const lastName = body.lastName !== undefined ? (body.lastName || body.last_name || null) : undefined;
+    const email = body.email !== undefined ? (body.email || null) : undefined;
 
-    // Update agent with Prisma (much cleaner!)
+    console.log('📥 Received update request for agent:', id);
+    console.log('📥 Update data:', body);
+
+    // Build update data object - only include fields that are explicitly provided
+    const updateData: any = {};
+
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (body.jobTitle !== undefined) updateData.jobTitle = body.jobTitle || body.job_title || null;
+    if (body.companyName !== undefined) updateData.companyName = body.companyName || body.company_name || null;
+    if (body.emailOptOut !== undefined) updateData.emailOptOut = body.emailOptOut;
+    if (body.phone1 !== undefined) updateData.phone1 = body.phone1 || null;
+    if (body.phone2 !== undefined) updateData.phone2 = body.phone2 || null;
+    if (body.fax !== undefined) updateData.fax = body.fax || null;
+    if (body.address !== undefined) updateData.address = body.address || null;
+    if (body.city !== undefined) updateData.city = body.city || null;
+    if (body.state !== undefined) updateData.state = body.state || null;
+    if (body.country !== undefined) updateData.country = body.country || null;
+    if (body.zipCode !== undefined || body.zip_code !== undefined) updateData.zipCode = body.zipCode || body.zip_code || null;
+    if (body.deals !== undefined) updateData.deals = body.deals ? (Array.isArray(body.deals) ? body.deals : [body.deals]) : [];
+    if (body.dateOfBirth !== undefined || body.date_of_birth !== undefined) {
+      updateData.dateOfBirth = (body.dateOfBirth || body.date_of_birth) ? new Date(body.dateOfBirth || body.date_of_birth) : null;
+    }
+    if (body.reviews !== undefined) updateData.reviews = body.reviews ? parseFloat(body.reviews) : null;
+    if (body.owner !== undefined) updateData.owner = body.owner || null;
+    if (body.tags !== undefined) updateData.tags = body.tags ? (Array.isArray(body.tags) ? body.tags : [body.tags]) : [];
+    if (body.source !== undefined) updateData.source = body.source || null;
+    if (body.industry !== undefined) updateData.industry = body.industry || null;
+    if (body.currency !== undefined) updateData.currency = body.currency || null;
+    if (body.language !== undefined) updateData.language = body.language || null;
+    if (body.description !== undefined) updateData.description = body.description || null;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.rating !== undefined) updateData.rating = body.rating ? parseFloat(body.rating) : null;
+    if (body.image !== undefined) updateData.image = body.image || null;
+    // New Agent-Specific Fields
+    if (body.licenseNumber !== undefined || body.license_number !== undefined) {
+      updateData.licenseNumber = body.licenseNumber || body.license_number || null;
+    }
+    if (body.licenseExpiryDate !== undefined || body.license_expiry_date !== undefined) {
+      updateData.licenseExpiryDate = (body.licenseExpiryDate || body.license_expiry_date) ? new Date(body.licenseExpiryDate || body.license_expiry_date) : null;
+    }
+    if (body.brokerageStartDate !== undefined || body.brokerage_start_date !== undefined) {
+      updateData.brokerageStartDate = (body.brokerageStartDate || body.brokerage_start_date) ? new Date(body.brokerageStartDate || body.brokerage_start_date) : null;
+    }
+    if (body.teamOffice !== undefined || body.team_office !== undefined) {
+      updateData.teamOffice = body.teamOffice || body.team_office || null;
+    }
+    if (body.commissionSplit !== undefined || body.commission_split !== undefined) {
+      updateData.commissionSplit = body.commissionSplit || body.commission_split || null;
+    }
+    if (body.bankingInfo !== undefined || body.banking_info !== undefined) {
+      updateData.bankingInfo = body.bankingInfo || body.banking_info || null;
+    }
+    if (body.emergencyContact !== undefined || body.emergency_contact !== undefined) {
+      updateData.emergencyContact = body.emergencyContact || body.emergency_contact || null;
+    }
+    if (body.notes !== undefined) updateData.notes = body.notes || null;
+
+    console.log('📤 Prepared update data:', updateData);
+
+    // Update agent with Prisma
     const agent = await prisma.agent.update({
       where: { id },
-      data: {
-        ...(firstName && { firstName }),
-        ...(lastName && { lastName }),
-        ...(body.jobTitle !== undefined && { jobTitle: body.jobTitle || body.job_title || null }),
-        ...(body.companyName !== undefined && { companyName: body.companyName || body.company_name || null }),
-        ...(body.email && { email: body.email }),
-        ...(body.emailOptOut !== undefined && { emailOptOut: body.emailOptOut }),
-        ...(body.phone1 !== undefined && { phone1: body.phone1 || null }),
-        ...(body.phone2 !== undefined && { phone2: body.phone2 || null }),
-        ...(body.fax !== undefined && { fax: body.fax || null }),
-        ...(body.address !== undefined && { address: body.address || null }),
-        ...(body.city !== undefined && { city: body.city || null }),
-        ...(body.state !== undefined && { state: body.state || null }),
-        ...(body.country !== undefined && { country: body.country || null }),
-        ...(body.zipCode !== undefined && { zipCode: body.zipCode || body.zip_code || null }),
-        ...(body.deals !== undefined && { deals: body.deals ? (Array.isArray(body.deals) ? body.deals : [body.deals]) : [] }),
-        ...(body.dateOfBirth !== undefined && { dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null }),
-        ...(body.reviews !== undefined && { reviews: body.reviews ? parseFloat(body.reviews) : null }),
-        ...(body.owner !== undefined && { owner: body.owner || null }),
-        ...(body.tags !== undefined && { tags: body.tags ? (Array.isArray(body.tags) ? body.tags : [body.tags]) : [] }),
-        ...(body.source !== undefined && { source: body.source || null }),
-        ...(body.industry !== undefined && { industry: body.industry || null }),
-        ...(body.currency !== undefined && { currency: body.currency || null }),
-        ...(body.language !== undefined && { language: body.language || null }),
-        ...(body.description !== undefined && { description: body.description || null }),
-        ...(body.status && { status: body.status }),
-        ...(body.rating !== undefined && { rating: body.rating ? parseFloat(body.rating) : null }),
-        ...(body.image !== undefined && { image: body.image || null }),
-        // New Agent-Specific Fields
-        ...(body.licenseNumber !== undefined && { licenseNumber: body.licenseNumber || body.license_number || null }),
-        ...(body.licenseExpiryDate !== undefined && { licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : null }),
-        ...(body.brokerageStartDate !== undefined && { brokerageStartDate: body.brokerageStartDate ? new Date(body.brokerageStartDate) : null }),
-        ...(body.teamOffice !== undefined && { teamOffice: body.teamOffice || body.team_office || null }),
-        ...(body.commissionSplit !== undefined && { commissionSplit: body.commissionSplit || body.commission_split || null }),
-        ...(body.bankingInfo !== undefined && { bankingInfo: body.bankingInfo || body.banking_info || null }),
-        ...(body.emergencyContact !== undefined && { emergencyContact: body.emergencyContact || body.emergency_contact || null }),
-        ...(body.notes !== undefined && { notes: body.notes || null }),
-      },
+      data: updateData,
     });
     return NextResponse.json({
       success: true,

@@ -124,6 +124,48 @@ export async function POST(request: NextRequest) {
         notes: body.notes || null,
       },
     });
+
+    // Automatically assign pre-defined tasks from active templates
+    // Skip if skipTaskAssignment is explicitly set to true
+    if (body.skipTaskAssignment !== true) {
+      try {
+        // Get all active task templates
+        const activeTemplates = await prisma.taskTemplate.findMany({
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        });
+
+        // Create tasks from templates
+        if (activeTemplates.length > 0) {
+          const tasksToCreate = activeTemplates.map((template) => ({
+            title: template.name,
+            description: template.description,
+            category: template.category,
+            priority: template.priority as 'Low' | 'Medium' | 'High' | 'Urgent',
+            status: 'Pending' as const,
+            agentId: agent.id,
+            templateId: template.id,
+            isCompleted: false,
+            assignedBy: body.assignedBy || null,
+          }));
+
+          await prisma.task.createMany({
+            data: tasksToCreate,
+          });
+
+          console.log(`✅ Assigned ${activeTemplates.length} tasks to agent ${agent.id}`);
+        }
+      } catch (taskError: any) {
+        // Log error but don't fail agent creation if task assignment fails
+        console.error('⚠️ Error assigning tasks to agent:', taskError);
+        // Continue with agent creation even if task assignment fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: agent,

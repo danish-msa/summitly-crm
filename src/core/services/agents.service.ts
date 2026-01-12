@@ -128,6 +128,8 @@ export async function updateAgent(
   agentData: Partial<Agent>
 ): Promise<AgentResponse> {
   try {
+    console.log('📤 Sending update request to:', `${API_BASE_URL}/${id}`, agentData);
+    
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
       headers: {
@@ -136,10 +138,18 @@ export async function updateAgent(
       body: JSON.stringify(agentData),
     });
 
+    console.log('📥 Response status:', response.status, response.statusText);
+
     const data = await response.json();
+    console.log('📥 Response data:', data);
+    
+    if (!response.ok) {
+      console.error('❌ API Error:', data);
+    }
+    
     return data;
   } catch (error: any) {
-    console.error('Error updating agent:', error);
+    console.error('❌ Network error updating agent:', error);
     return {
       success: false,
       error: error.message || 'Failed to update agent',

@@ -63,6 +63,7 @@ model Agent {
 
   // Relations
   onboarding  AgentOnboarding?
+  tasks       Task[]
 
   @@map("agents")
 }
@@ -287,4 +288,80 @@ model OnboardingAuditLog {
   @@index([actionType])
   @@index([createdAt])
   @@map("onboarding_audit_logs")
+}
+
+// ============================================
+// Tasks Module
+// ============================================
+
+// Pre-defined task templates that can be assigned to agents
+model TaskTemplate {
+  id          String    @id @default(uuid())
+  name        String    // Task name/title
+  description String?   @db.Text
+  category    String?   // e.g., "Onboarding", "Training", "Compliance", "General"
+  priority    String    @default("Medium") // Low, Medium, High, Urgent
+  estimatedDuration Int? @map("estimated_duration") // in minutes
+  isActive    Boolean   @default(true) @map("is_active")
+  order       Int       @default(0) // Display order
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdBy   String?   @map("created_by") // User ID
+  
+  // Relations
+  tasks       Task[]
+  
+  @@index([isActive])
+  @@index([category])
+  @@map("task_templates")
+}
+
+// Individual task instances linked to agents (and potentially other modules)
+model Task {
+  id          String    @id @default(uuid())
+  
+  // Task Information
+  title       String
+  description String?   @db.Text
+  category    String?   // Inherited from template or custom
+  priority    String    @default("Medium") // Low, Medium, High, Urgent
+  status      String    @default("Pending") // Pending, In Progress, Completed, Cancelled
+  
+  // Assignment
+  agentId     String?   @map("agent_id") // Link to agent
+  agent       Agent?    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  // Template Reference (optional - for tracking which template was used)
+  templateId  String?   @map("template_id")
+  template    TaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  
+  // Completion Tracking
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  completedBy String?   @map("completed_by") // User ID
+  
+  // Due Date
+  dueDate     DateTime? @map("due_date")
+  
+  // Additional Metadata
+  tags        String[]  @default([])
+  notes       String?   @db.Text
+  
+  // Assignment Info
+  assignedBy  String?   @map("assigned_by") // User ID who assigned the task
+  assignedAt  DateTime  @default(now()) @map("assigned_at")
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  @@index([agentId])
+  @@index([templateId])
+  @@index([status])
+  @@index([isCompleted])
+  @@index([dueDate])
+  @@index([createdAt])
+  @@map("tasks")
 }
