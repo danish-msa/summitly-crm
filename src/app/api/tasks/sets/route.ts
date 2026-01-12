@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform data to match interface
-    const transformedSets = taskSets.map((set) => ({
+    const transformedSets = taskSets.map((set: any) => ({
       id: set.id,
       name: set.name,
       description: set.description || undefined,
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       createdAt: set.createdAt.toISOString(),
       updatedAt: set.updatedAt.toISOString(),
       createdBy: set.createdBy || undefined,
-      templates: includeTemplates ? set.templates.map((tst) => ({
+      templates: includeTemplates && set.templates ? set.templates.map((tst: any) => ({
         id: tst.template.id,
         name: tst.template.name,
         description: tst.template.description || undefined,
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
       createdAt: result!.createdAt.toISOString(),
       updatedAt: result!.updatedAt.toISOString(),
       createdBy: result!.createdBy || undefined,
-      templates: result!.templates.map((tst) => ({
+      templates: (result as any).templates ? (result as any).templates.map((tst: any) => ({
         id: tst.template.id,
         name: tst.template.name,
         description: tst.template.description || undefined,
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
         createdAt: tst.template.createdAt.toISOString(),
         updatedAt: tst.template.updatedAt.toISOString(),
         createdBy: tst.template.createdBy || undefined,
-      })),
+      })) : undefined,
     };
 
     return NextResponse.json({

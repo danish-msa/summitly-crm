@@ -69,9 +69,9 @@ export async function POST(
     }
 
     // Only include active templates
-    const activeTemplates = taskSet.templates.filter(
-      (tst) => tst.template.isActive
-    );
+    const activeTemplates = (taskSet as any).templates ? (taskSet as any).templates.filter(
+      (tst: any) => tst.template.isActive
+    ) : [];
 
     if (activeTemplates.length === 0) {
       return NextResponse.json(

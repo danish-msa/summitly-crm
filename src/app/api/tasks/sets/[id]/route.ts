@@ -49,7 +49,7 @@ export async function GET(
       createdAt: taskSet.createdAt.toISOString(),
       updatedAt: taskSet.updatedAt.toISOString(),
       createdBy: taskSet.createdBy || undefined,
-      templates: taskSet.templates.map((tst) => ({
+      templates: (taskSet as any).templates ? (taskSet as any).templates.map((tst: any) => ({
         id: tst.template.id,
         name: tst.template.name,
         description: tst.template.description || undefined,
@@ -61,7 +61,7 @@ export async function GET(
         createdAt: tst.template.createdAt.toISOString(),
         updatedAt: tst.template.updatedAt.toISOString(),
         createdBy: tst.template.createdBy || undefined,
-      })),
+      })) : undefined,
     };
 
     return NextResponse.json({
@@ -179,7 +179,7 @@ export async function PUT(
       createdAt: result!.createdAt.toISOString(),
       updatedAt: result!.updatedAt.toISOString(),
       createdBy: result!.createdBy || undefined,
-      templates: result!.templates.map((tst) => ({
+      templates: (result as any).templates ? (result as any).templates.map((tst: any) => ({
         id: tst.template.id,
         name: tst.template.name,
         description: tst.template.description || undefined,
@@ -191,7 +191,7 @@ export async function PUT(
         createdAt: tst.template.createdAt.toISOString(),
         updatedAt: tst.template.updatedAt.toISOString(),
         createdBy: tst.template.createdBy || undefined,
-      })),
+      })) : undefined,
     };
 
     return NextResponse.json({
