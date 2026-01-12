@@ -21,6 +21,7 @@
     "@reduxjs/toolkit": "^2.11.0",
     "@tabler/icons-webfont": "^3.35.0",
     "@types/pg": "^8.16.0",
+    "@types/uuid": "^10.0.0",
     "antd": "^5.27.4",
     "bootstrap": "^5.3.8",
     "clipboard-copy": "^4.0.1",
@@ -54,6 +55,7 @@
     "react-simple-wysiwyg": "^3.4.1",
     "react-star-ratings": "^2.3.0",
     "sass": "^1.94.2",
+    "uuid": "^13.0.0",
     "yet-another-react-lightbox": "^3.25.0"
   },
   "devDependencies": {

@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/core/database/prisma';
+
+/**
+ * GET /api/onboarding/[id]/checklist
+ * Get checklist items for an onboarding
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+
+    const checklist = await prisma.onboardingChecklist.findMany({
+      where: { onboardingId: id },
+      orderBy: { stepOrder: 'asc' },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: checklist,
+    });
+  } catch (error: any) {
+    console.error('Error fetching checklist:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to fetch checklist' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/onboarding/[id]/checklist/[stepId]
+ * Update checklist item
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string; stepId: string } }
+) {
+  try {
+    const { stepId } = params;
+    const body = await request.json();
+
+    const checklistItem = await prisma.onboardingChecklist.update({
+      where: { id: stepId },
+      data: {
+        isCompleted: body.isCompleted ?? undefined,
+        completedAt: body.isCompleted ? new Date() : null,
+        completedBy: body.completedBy || null,
+        stepData: body.stepData || undefined,
+      },
+    });
+
+    // Create audit log
+    await prisma.onboardingAuditLog.create({
+      data: {
+        onboardingId: params.id,
+        action: 'checklist_updated',
+        actionType: 'checklist_update',
+        description: `Checklist item ${checklistItem.stepName} ${body.isCompleted ? 'completed' : 'marked incomplete'}`,
+        performedBy: body.completedBy || null,
+        newValue: { step: checklistItem.step, isCompleted: body.isCompleted },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: checklistItem,
+    });
+  } catch (error: any) {
+    console.error('Error updating checklist:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to update checklist' },
+      { status: 500 }
+    );
+  }
+}

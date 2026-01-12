@@ -24,6 +24,7 @@ export const SidebarData = [
           { label: "Deals Dashboard", link: route.dealsDashboard },
           { label: "Leads Dashboard", link: route.leadsDashboard },
           { label: "Project Dashboard", link: route.projectDashboard },
+          { label: "Agents Dashboard", link: route.agentsDashboard },
         ],
       },
       {

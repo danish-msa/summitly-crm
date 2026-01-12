@@ -61,5 +61,230 @@ model Agent {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  // Relations
+  onboarding  AgentOnboarding?
+
   @@map("agents")
+}
+
+// ============================================
+// Agent Onboarding System
+// ============================================
+
+model AgentOnboarding {
+  id                    String    @id @default(uuid())
+  agentId               String    @unique @map("agent_id")
+  agent                 Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  // Onboarding Status
+  status                String    @default("Invited") // Invited, Onboarding Started, Profile Complete, Compliance Pending, Awaiting Approval, Active, Suspended, Terminated
+  onboardingStartedAt   DateTime? @map("onboarding_started_at")
+  completedAt           DateTime? @map("completed_at")
+  activatedAt           DateTime? @map("activated_at")
+  activatedBy           String?   @map("activated_by") // Admin user ID
+  
+  // Invitation
+  invitationToken       String?   @unique @map("invitation_token")
+  invitationSentAt      DateTime? @map("invitation_sent_at")
+  invitationExpiresAt   DateTime? @map("invitation_expires_at")
+  invitationAcceptedAt  DateTime? @map("invitation_accepted_at")
+  invitedBy             String?   @map("invited_by") // Admin user ID
+  
+  // Role & Assignment
+  role                  String?   // Salesperson, Broker, Team Leader
+  assignedOffice        String?   @map("assigned_office")
+  assignedTeam          String?   @map("assigned_team")
+  
+  // Profile Completion
+  profileCompleted      Boolean   @default(false) @map("profile_completed")
+  profileCompletedAt    DateTime? @map("profile_completed_at")
+  
+  // Compliance Status
+  complianceStatus      String?   @map("compliance_status") // Pending, In Review, Approved, Rejected
+  complianceCompletedAt DateTime? @map("compliance_completed_at")
+  
+  // Training Status
+  trainingCompleted     Boolean   @default(false) @map("training_completed")
+  trainingCompletedAt   DateTime? @map("training_completed_at")
+  
+  // Financial Setup
+  financialSetup        Boolean   @default(false) @map("financial_setup")
+  financialApprovedAt   DateTime? @map("financial_approved_at")
+  financialApprovedBy   String?   @map("financial_approved_by")
+  
+  // Admin Notes
+  adminNotes            String?   @db.Text @map("admin_notes")
+  
+  // Timestamps
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  checklist             OnboardingChecklist[]
+  documents             OnboardingDocument[]
+  agreements            OnboardingAgreement[]
+  training              OnboardingTraining[]
+  auditLogs             OnboardingAuditLog[]
+  
+  @@map("agent_onboarding")
+}
+
+model OnboardingChecklist {
+  id              String    @id @default(uuid())
+  onboardingId    String    @map("onboarding_id")
+  onboarding      AgentOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  step            String    // Step identifier (e.g., "profile", "compliance", "training")
+  stepName        String    @map("step_name")
+  stepOrder       Int       @map("step_order")
+  isRequired      Boolean   @default(true) @map("is_required")
+  isCompleted     Boolean   @default(false) @map("is_completed")
+  completedAt     DateTime? @map("completed_at")
+  completedBy     String?   @map("completed_by") // User ID (agent or admin)
+  
+  // Step-specific data
+  stepData        Json?     @map("step_data")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([onboardingId])
+  @@map("onboarding_checklist")
+}
+
+model OnboardingDocument {
+  id              String    @id @default(uuid())
+  onboardingId    String    @map("onboarding_id")
+  onboarding      AgentOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  documentType    String    @map("document_type") // RECO, E&O Insurance, FINTRAC, PIPEDA, Government ID, etc.
+  documentName    String    @map("document_name")
+  fileName        String    @map("file_name")
+  filePath        String    @map("file_path") // Encrypted storage path
+  fileSize        Int?      @map("file_size")
+  mimeType        String?   @map("mime_type")
+  
+  // Expiry & Compliance
+  expiryDate      DateTime? @map("expiry_date")
+  isExpired       Boolean   @default(false) @map("is_expired")
+  isRequired      Boolean   @default(true) @map("is_required")
+  
+  // Status
+  status          String    @default("Pending") // Pending, Approved, Rejected
+  statusChangedAt DateTime? @map("status_changed_at")
+  statusChangedBy String?   @map("status_changed_by") // Admin user ID
+  
+  // Admin Review
+  adminNotes      String?   @db.Text @map("admin_notes")
+  rejectionReason String?   @db.Text @map("rejection_reason")
+  
+  // Version Control
+  version         Int       @default(1)
+  previousVersion String?   @map("previous_version") // Reference to previous version ID
+  
+  // Upload Info
+  uploadedBy     String?   @map("uploaded_by") // User ID
+  uploadedAt     DateTime  @default(now()) @map("uploaded_at")
+  uploadIp       String?   @map("upload_ip")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([onboardingId])
+  @@index([documentType])
+  @@index([expiryDate])
+  @@index([status])
+  @@map("onboarding_documents")
+}
+
+model OnboardingAgreement {
+  id              String    @id @default(uuid())
+  onboardingId    String    @map("onboarding_id")
+  onboarding      AgentOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  agreementType   String    @map("agreement_type") // Independent Contractor, Brokerage Policies, Code of Ethics, AML Policy
+  agreementName   String    @map("agreement_name")
+  
+  // Document Reference
+  documentId      String?   @map("document_id") // Reference to OnboardingDocument if stored as file
+  documentVersion String?   @map("document_version")
+  
+  // E-Signature
+  signedBy        String?   @map("signed_by") // Agent user ID
+  signedAt        DateTime? @map("signed_at")
+  signatureIp     String?   @map("signature_ip")
+  signatureData   Json?     @map("signature_data") // Signature image/data
+  
+  // Status
+  status          String    @default("Pending") // Pending, Signed, Expired
+  isRequired      Boolean   @default(true) @map("is_required")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([onboardingId])
+  @@index([agreementType])
+  @@map("onboarding_agreements")
+}
+
+model OnboardingTraining {
+  id              String    @id @default(uuid())
+  onboardingId    String    @map("onboarding_id")
+  onboarding      AgentOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  trainingType    String    @map("training_type") // Brokerage Policies, Compliance, CRM Usage, Marketing Guidelines
+  trainingName    String    @map("training_name")
+  trainingUrl     String?   @map("training_url") // Link to training material
+  
+  // Completion
+  isCompleted     Boolean   @default(false) @map("is_completed")
+  completedAt     DateTime? @map("completed_at")
+  completedBy     String?   @map("completed_by") // Agent user ID
+  
+  // Optional Quiz/Assessment
+  quizScore       Decimal?  @db.Decimal(5, 2) @map("quiz_score")
+  quizPassed      Boolean?  @map("quiz_passed")
+  quizAttempts    Int       @default(0) @map("quiz_attempts")
+  
+  // Requirements
+  isRequired      Boolean   @default(true) @map("is_required")
+  isMandatory     Boolean   @default(true) @map("is_mandatory")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([onboardingId])
+  @@index([trainingType])
+  @@map("onboarding_training")
+}
+
+model OnboardingAuditLog {
+  id              String    @id @default(uuid())
+  onboardingId    String    @map("onboarding_id")
+  onboarding      AgentOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  action          String    // Action performed (e.g., "status_changed", "document_uploaded", "agreement_signed")
+  actionType      String    @map("action_type") // status_change, document_upload, document_approval, agreement_signature, etc.
+  description     String?   @db.Text
+  
+  // Actor
+  performedBy     String?   @map("performed_by") // User ID
+  performedByRole String?   @map("performed_by_role") // Admin, Agent
+  ipAddress       String?   @map("ip_address")
+  
+  // Changes
+  oldValue        Json?     @map("old_value")
+  newValue        Json?     @map("new_value")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  @@index([onboardingId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("onboarding_audit_logs")
 }
