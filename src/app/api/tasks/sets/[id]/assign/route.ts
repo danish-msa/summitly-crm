@@ -106,7 +106,7 @@ export async function POST(
       return await tx.task.findMany({
         where: {
           agentId,
-          templateId: { in: activeTemplates.map((tst) => tst.template.id) },
+          templateId: { in: activeTemplates.map((tst: any) => tst.template.id) },
           assignedAt: {
             gte: new Date(Date.now() - 1000), // Created in the last second
           },
