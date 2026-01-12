@@ -102,7 +102,7 @@ const ModalAgentsDetails = ({ agent, onSuccess }: ModalAgentsDetailsProps) => {
         tags: tags,
         source: formData.source,
         description: formData.description,
-        status: formData.status as 'Active' | 'Inactive',
+        status: formData.status as 'Active' | 'Suspended' | 'Terminated',
       });
 
       if (response.success) {

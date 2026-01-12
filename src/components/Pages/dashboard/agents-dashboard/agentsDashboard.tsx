@@ -38,13 +38,9 @@ const AgentsDashboardComponent = () => {
         const active = agents.filter(a => a.status === 'Active').length;
         const suspended = agents.filter(a => a.status === 'Suspended').length;
         const terminated = agents.filter(a => a.status === 'Terminated').length;
-        const pending = agents.filter(a => 
-          a.status === 'Invited' || 
-          a.status === 'Onboarding Started' || 
-          a.status === 'Profile Complete' || 
-          a.status === 'Compliance Pending' || 
-          a.status === 'Awaiting Approval'
-        ).length;
+        // Note: Pending status should come from onboarding relationship, not agent status
+        // For now, we'll set pending to 0 since agents only have Active/Suspended/Terminated
+        const pending = 0;
 
         setStats({ total, active, suspended, terminated, pending });
 

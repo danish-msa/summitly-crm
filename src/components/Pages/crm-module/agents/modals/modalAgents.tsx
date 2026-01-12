@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { useState, useEffect } from "react";
+import dayjs, { type Dayjs } from "dayjs";
 import CommonDatePicker from "@/core/common/common-datePicker/commonDatePicker";
 import CommonSelect from "@/core/common/common-select/commonSelect";
 import CommonTagInputs from "@/core/common/common-tagInput/commonTagInputs";
@@ -461,8 +462,8 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                             License Expiry Date
                           </label>
                           <CommonDatePicker
-                            value={formData.license_expiry_date}
-                            onChange={(date) => setFormData({ ...formData, license_expiry_date: date || '' })}
+                            value={formData.license_expiry_date ? dayjs(formData.license_expiry_date) : undefined}
+                            onChange={(date: Dayjs | null) => setFormData({ ...formData, license_expiry_date: date ? date.format('YYYY-MM-DD') : '' })}
                             placeholder="Select expiry date"
                           />
                         </div>
@@ -473,8 +474,8 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                             Brokerage Start Date
                           </label>
                           <CommonDatePicker
-                            value={formData.brokerage_start_date}
-                            onChange={(date) => setFormData({ ...formData, brokerage_start_date: date || '' })}
+                            value={formData.brokerage_start_date ? dayjs(formData.brokerage_start_date) : undefined}
+                            onChange={(date: Dayjs | null) => setFormData({ ...formData, brokerage_start_date: date ? date.format('YYYY-MM-DD') : '' })}
                             placeholder="Select start date"
                           />
                         </div>
