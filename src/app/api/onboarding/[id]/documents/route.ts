@@ -7,10 +7,10 @@ import { prisma } from '@/core/database/prisma';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const documents = await prisma.onboardingDocument.findMany({
       where: { onboardingId: id },
@@ -37,10 +37,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const formData = await request.formData();
 
     const documentType = formData.get('documentType') as string;

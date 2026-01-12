@@ -7,10 +7,10 @@ import { prisma } from '@/core/database/prisma';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const checklist = await prisma.onboardingChecklist.findMany({
       where: { onboardingId: id },
@@ -36,10 +36,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; stepId: string } }
+  { params }: { params: Promise<{ id: string; stepId: string }> }
 ) {
   try {
-    const { stepId } = params;
+    const { id, stepId } = await params;
     const body = await request.json();
 
     const checklistItem = await prisma.onboardingChecklist.update({
@@ -55,7 +55,7 @@ export async function PUT(
     // Create audit log
     await prisma.onboardingAuditLog.create({
       data: {
-        onboardingId: params.id,
+        onboardingId: id,
         action: 'checklist_updated',
         actionType: 'checklist_update',
         description: `Checklist item ${checklistItem.stepName} ${body.isCompleted ? 'completed' : 'marked incomplete'}`,
