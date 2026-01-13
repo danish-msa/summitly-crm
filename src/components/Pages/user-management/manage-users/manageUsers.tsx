@@ -2,84 +2,170 @@
 /* eslint-disable @next/next/no-img-element */
 import Footer from "@/core/common/footer/footer";
 import PageHeader from "@/core/common/page-header/pageHeader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchInput from "@/core/common/dataTable/dataTableSearch";
 import Datatable from "@/core/common/dataTable";
-import { ManageuserListData } from "../../../../core/json/manageUserListData";
 import ImageWithBasePath from "@/core/common/imageWithBasePath";
 import ModalUserManagement from "./modal/modalUserManagement";
 import Link from "next/link";
 import { all_routes } from "@/router/all_routes";
 import PredefinedDatePicker from "@/core/common/common-dateRangePicker/PredefinedDatePicker";
+import { getUsers, deleteUser } from "@/core/services/users.service";
+import { User } from "@/core/data/interface/user.interface";
+import dayjs from "dayjs";
 
 
 const ManageUsersComponent = () => {
-  const data = ManageuserListData;
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState<string>("");
+
+  // Fetch users on component mount and when search changes
+  useEffect(() => {
+    fetchUsers();
+  }, [searchText]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await getUsers({
+        search: searchText || undefined,
+        includeRole: true,
+        limit: 100,
+      });
+      
+      if (response.success && response.data) {
+        setUsers(response.data);
+        setTotalUsers(response.total || response.data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (userId: string) => {
+    setSelectedUserId(userId);
+    // Small delay to ensure state is set before opening modal
+    setTimeout(() => {
+      const offcanvas = document.getElementById('offcanvas_edit');
+      if (offcanvas) {
+        const bsOffcanvas = new (window as any).bootstrap.Offcanvas(offcanvas);
+        bsOffcanvas.show();
+      }
+    }, 100);
+  };
+
+  const handleDelete = (userId: string) => {
+    setSelectedUserId(userId);
+    const modal = document.getElementById('delete_contact');
+    if (modal) {
+      const bsModal = new (window as any).bootstrap.Modal(modal);
+      bsModal.show();
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedUserId) return;
+    
+    try {
+      const response = await deleteUser(selectedUserId);
+      if (response.success) {
+        // Close modal
+        const modal = document.getElementById('delete_contact');
+        if (modal) {
+          const bsModal = (window as any).bootstrap.Modal.getInstance(modal);
+          bsModal?.hide();
+        }
+        // Refresh users list
+        fetchUsers();
+        setSelectedUserId(null);
+      } else {
+        alert(response.error || 'Failed to delete user');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user');
+    }
+  };
+
+  // Transform users data for table
+  const tableData = users.map((user) => ({
+    key: user.id,
+    id: user.id,
+    Name: `${user.firstName} ${user.lastName || ''}`.trim(),
+    Role: user.role?.name || 'No Role',
+    Image: user.image || 'avatar-01.jpg',
+    Phone: user.phone1 || '-',
+    Email: user.email,
+    Created: dayjs(user.createdAt).format('DD MMM YYYY, hh:mm A'),
+    LastActivity: user.lastLoginAt ? dayjs(user.lastLoginAt).fromNow() : 'Never',
+    Status: user.status,
+  }));
+
   const columns = [
     {
       title: "Name",
       dataIndex: "Name",
-      render: (text: any, render: any) => (
+      render: (text: any, record: any) => (
         <h6 className="d-flex align-items-center fs-14 fw-medium mb-0">
           <Link href="#" className="avatar avatar-rounded me-2">
             <ImageWithBasePath
-              src={`assets/img/profiles/${render.Image}`}
+              src={record.Image ? `assets/img/profiles/${record.Image}` : 'assets/img/profiles/avatar-01.jpg'}
               alt="User Image"
             />
           </Link>
           <Link href="#" className="d-flex flex-column">
             {text}{" "}
             <span className="text-body fs-13 mt-1 d-inline-block fw-normal">
-              {render.Role}{" "}
+              {record.Role}{" "}
             </span>
           </Link>
         </h6>
       ),
-      sorter: (a: any, b: any) => a.Name.length - b.Name.length,
+      sorter: (a: any, b: any) => a.Name.localeCompare(b.Name),
     },
     {
       title: "Phone",
       dataIndex: "Phone",
-
-      sorter: (a: any, b: any) => a.Phone.length - b.Phone.length,
+      sorter: (a: any, b: any) => (a.Phone || '').localeCompare(b.Phone || ''),
     },
     {
       title: "Email",
       dataIndex: "Email",
-
-      sorter: (a: any, b: any) => a.Email.length - b.Email.length,
+      sorter: (a: any, b: any) => a.Email.localeCompare(b.Email),
     },
     {
       title: "Created",
       dataIndex: "Created",
-
-      sorter: (a: any, b: any) => a.Created.length - b.Created.length,
+      sorter: (a: any, b: any) => a.Created.localeCompare(b.Created),
     },
     {
       title: "Last Activity",
       dataIndex: "LastActivity",
-
-      sorter: (a: any, b: any) => a.LastActivity.length - b.LastActivity.length,
+      sorter: (a: any, b: any) => a.LastActivity.localeCompare(b.LastActivity),
     },
-
     {
       title: "Status",
       dataIndex: "Status",
       render: (text: any) => (
         <span
           className={`badge badge-pill badge-status ${
-            text === "Active" ? "bg-success" : "bg-danger"
+            text === "Active" ? "bg-success" : text === "Suspended" ? "bg-warning" : "bg-danger"
           } `}
         >
           {text}
         </span>
       ),
-      sorter: (a: any, b: any) => a.Status.length - b.Status.length,
+      sorter: (a: any, b: any) => a.Status.localeCompare(b.Status),
     },
     {
       title: "Action",
       dataIndex: "Action",
-      render: () => (
+      render: (_: any, record: any) => (
         <div className="dropdown table-action">
           <Link
             href="#"
@@ -93,27 +179,28 @@ const ManageUsersComponent = () => {
             <Link
               className="dropdown-item"
               href="#"
-              data-bs-toggle="offcanvas"
-              data-bs-target="#offcanvas_edit"
+              onClick={(e) => {
+                e.preventDefault();
+                handleEdit(record.id);
+              }}
             >
               <i className="ti ti-edit text-blue" /> Edit
             </Link>
             <Link
               className="dropdown-item"
               href="#"
-              data-bs-toggle="modal"
-              data-bs-target="#delete_contact"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete(record.id);
+              }}
             >
               <i className="ti ti-trash" /> Delete
             </Link>
           </div>
         </div>
       ),
-      sorter: (a: any, b: any) => a.Action.length - b.Action.length,
     },
   ];
-
-  const [searchText, setSearchText] = useState<string>("");
 
   const handleSearch = (value: string) => {
     setSearchText(value);
@@ -129,7 +216,7 @@ const ManageUsersComponent = () => {
           {/* Page Header */}
           <PageHeader
             title="Manage Users"
-            badgeCount={152}
+            badgeCount={totalUsers}
             showModuleTile={false}
             showExport={true}
           />
@@ -698,12 +785,20 @@ const ManageUsersComponent = () => {
               {/* table header */}
               {/* Contact List */}
               <div className="custom-table">
-                <Datatable
-                  columns={columns}
-                  dataSource={data}
-                  Selection={true}
-                  searchText={searchText}
-                />
+                {loading ? (
+                  <div className="text-center p-4">
+                    <div className="spinner-border" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <Datatable
+                    columns={columns}
+                    dataSource={tableData}
+                    Selection={true}
+                    searchText={searchText}
+                  />
+                )}
               </div>
 
               {/* /Contact List */}
@@ -719,7 +814,48 @@ const ManageUsersComponent = () => {
       {/* ========================
 			End Page Content
 		========================= */}
-        <ModalUserManagement/>
+        <ModalUserManagement 
+          userId={selectedUserId}
+          onSuccess={() => {
+            fetchUsers();
+            setSelectedUserId(null);
+          }}
+          onClose={() => setSelectedUserId(null)}
+        />
+        {/* Delete Confirmation Modal */}
+        <div className="modal fade" id="delete_contact">
+          <div className="modal-dialog modal-dialog-centered modal-sm rounded-0">
+            <div className="modal-content rounded-0">
+              <div className="modal-body p-4 text-center position-relative">
+                <div className="mb-3 position-relative z-1">
+                  <span className="avatar avatar-xl badge-soft-danger border-0 text-danger rounded-circle">
+                    <i className="ti ti-trash fs-24" />
+                  </span>
+                </div>
+                <h5 className="mb-1">Delete Confirmation</h5>
+                <p className="mb-3">
+                  Are you sure you want to remove this user?
+                </p>
+                <div className="d-flex justify-content-center">
+                  <button
+                    type="button"
+                    className="btn btn-light position-relative z-1 me-2 w-100"
+                    data-bs-dismiss="modal"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary position-relative z-1 w-100"
+                    onClick={confirmDelete}
+                  >
+                    Yes, Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
     </>
   );
 };

@@ -514,3 +514,131 @@ model PipelineStageTaskSet {
   @@index([taskSetId])
   @@map("pipeline_stage_task_sets")
 }
+
+// ============================================
+// User Management System
+// ============================================
+
+model User {
+  id          String    @id @default(uuid())
+  username    String    @unique
+  email       String    @unique
+  emailOptOut Boolean   @default(false) @map("email_opt_out")
+  firstName   String    @map("first_name")
+  lastName    String?   @map("last_name")
+  
+  // Authentication
+  passwordHash String   @map("password_hash") // Hashed password (bcrypt)
+  
+  // Contact Information
+  phone1      String?
+  phone2      String?
+  
+  // Location
+  location    String?   // Location/Address
+  
+  // Profile
+  image       String?   // Profile image path
+  status      String    @default("Active") // Active, Inactive, Suspended
+  
+  // Relations
+  roleId      String?   @map("role_id")
+  role        Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  deleteRequests DeleteRequest[]
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  lastLoginAt DateTime? @map("last_login_at")
+  
+  @@index([email])
+  @@index([username])
+  @@index([roleId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?   @db.Text
+  isActive    Boolean   @default(true) @map("is_active")
+  
+  // Relations
+  users       User[]
+  permissions RolePermission[] // Many-to-many with Permission
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdBy   String?   @map("created_by") // User ID
+  
+  @@index([isActive])
+  @@index([name])
+  @@map("roles")
+}
+
+model Permission {
+  id          String    @id @default(uuid())
+  name        String    @unique // e.g., "users.create", "agents.view", "tasks.edit"
+  description String?   @db.Text
+  category    String?   // e.g., "Users", "Agents", "Tasks", "Pipelines"
+  isActive    Boolean   @default(true) @map("is_active")
+  
+  // Relations
+  roles       RolePermission[] // Many-to-many with Role
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  @@index([isActive])
+  @@index([category])
+  @@index([name])
+  @@map("permissions")
+}
+
+// Join table for many-to-many relationship between Role and Permission
+model RolePermission {
+  id           String    @id @default(uuid())
+  roleId       String    @map("role_id")
+  role         Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String    @map("permission_id")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt    DateTime  @default(now()) @map("created_at")
+  grantedBy    String?   @map("granted_by") // User ID who granted this permission
+  
+  @@unique([roleId, permissionId]) // Prevent duplicate permissions for same role
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// Delete Request System
+// ============================================
+
+model DeleteRequest {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reason          String?   @db.Text
+  status          String    @default("Pending") // Pending, Approved, Rejected
+  requestedAt     DateTime  @default(now()) @map("requested_at")
+  reviewedAt      DateTime? @map("reviewed_at")
+  reviewedBy      String?   @map("reviewed_by") // Admin user ID
+  reviewNotes     String?   @db.Text @map("review_notes")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([userId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("delete_requests")
+}

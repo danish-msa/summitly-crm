@@ -3,138 +3,203 @@
 import Footer from "@/core/common/footer/footer";
 import PageHeader from "@/core/common/page-header/pageHeader";
 import SearchInput from "@/core/common/dataTable/dataTableSearch";
-import { useState } from "react";
-import { DeleteRequestListData } from "../../../../core/json/deleteRequesrListData";
+import { useState, useEffect } from "react";
 import Datatable from "@/core/common/dataTable";
 import ImageWithBasePath from "@/core/common/imageWithBasePath";
 import PredefinedDatePicker from "@/core/common/common-dateRangePicker/PredefinedDatePicker";
 import Link from "next/link";
 import { all_routes } from "@/router/all_routes";
+import { getDeleteRequests, approveDeleteRequest, rejectDeleteRequest, DeleteRequest } from "@/core/services/delete-requests.service";
+import dayjs from "dayjs";
 
 
 const DeleteRequestComponent = () => {
-  const [filledStars, setFilledStars] = useState<{ [key: string]: boolean }>(
-    {}
-  );
-  const handleClick = (key: string) => {
-    setFilledStars((prev) => ({
-      ...prev,
-      [key]: !prev[key], // toggle on/off
-    }));
+  const [deleteRequests, setDeleteRequests] = useState<DeleteRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalRequests, setTotalRequests] = useState(0);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState<string>("");
+
+  useEffect(() => {
+    fetchDeleteRequests();
+  }, [searchText]);
+
+  const fetchDeleteRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await getDeleteRequests({
+        limit: 100,
+      });
+      
+      if (response.success && response.data) {
+        setDeleteRequests(response.data);
+        setTotalRequests(response.total || response.data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching delete requests:', error);
+    } finally {
+      setLoading(false);
+    }
   };
-  const data = DeleteRequestListData;
+
+  const handleApprove = async (requestId: string) => {
+    if (!confirm('Are you sure you want to approve this delete request? This will permanently delete the user account.')) {
+      return;
+    }
+
+    try {
+      const response = await approveDeleteRequest(requestId);
+      if (response.success) {
+        const modal = document.getElementById('approve_request');
+        if (modal) {
+          const bsModal = (window as any).bootstrap.Modal.getInstance(modal);
+          bsModal?.hide();
+        }
+        fetchDeleteRequests();
+        setSelectedRequestId(null);
+      } else {
+        alert(response.error || 'Failed to approve request');
+      }
+    } catch (error) {
+      console.error('Error approving request:', error);
+      alert('Failed to approve request');
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    try {
+      const response = await rejectDeleteRequest(requestId);
+      if (response.success) {
+        const modal = document.getElementById('reject_request');
+        if (modal) {
+          const bsModal = (window as any).bootstrap.Modal.getInstance(modal);
+          bsModal?.hide();
+        }
+        fetchDeleteRequests();
+        setSelectedRequestId(null);
+      } else {
+        alert(response.error || 'Failed to reject request');
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      alert('Failed to reject request');
+    }
+  };
+
+  // Transform delete requests data for table
+  const tableData = deleteRequests.map((request) => ({
+    key: request.id,
+    id: request.id,
+    Name: `${request.user.firstName} ${request.user.lastName || ''}`.trim(),
+    Role: request.user.role?.name || 'No Role',
+    Image: request.user.image || 'avatar-01.jpg',
+    RequisitionDate: dayjs(request.requestedAt).format('DD MMM YYYY, hh:mm A'),
+    DeleteRequestDate: dayjs(request.requestedAt).format('DD MMM YYYY, hh:mm A'),
+    ReasonforDeletion: request.reason || 'No reason provided',
+    Status: request.status,
+  }));
   const columns = [
-    {
-      title: "",
-      dataIndex: "Name",
-      render: (_: any, record: any) => (
-        <div
-          className={`set-star rating-select ${
-            filledStars[record.key] ? "filled" : ""
-          }`}
-          onClick={() => handleClick(record.key)}
-        >
-          <i className="ti ti-star-filled fs-16" />
-        </div>
-      ),
-      sorter: (a: any, b: any) => a.Name.length - b.Name.length,
-    },
     {
       title: "User Name",
       dataIndex: "Name",
-      redner: (text: any, render: any) => (
+      render: (text: any, record: any) => (
         <h6 className="d-flex align-items-center fs-14 fw-medium mb-0">
           <Link href="#" className="avatar avatar-rounded me-2">
             <ImageWithBasePath
-              src={`assets/img/profiles/${render.Image}`}
+              src={record.Image ? `assets/img/profiles/${record.Image}` : 'assets/img/profiles/avatar-01.jpg'}
               alt="User Image"
             />
           </Link>
           <Link href="#" className="d-flex flex-column">
             {text}{" "}
             <span className="text-body fs-13 fw-normal d-inline-block mt-1">
-              {render.Role}{" "}
+              {record.Role}{" "}
             </span>
           </Link>
         </h6>
       ),
-      sorter: (a: any, b: any) => a.Name.length - b.Name.length,
+      sorter: (a: any, b: any) => a.Name.localeCompare(b.Name),
     },
     {
-      title: "Requisition Date",
-      dataIndex: "RequisitionDate",
-
-      sorter: (a: any, b: any) =>
-        a.RequisitionDate.length - b.RequisitionDate.length,
-    },
-    {
-      title: "Delete Request Date",
+      title: "Request Date",
       dataIndex: "DeleteRequestDate",
-
-      sorter: (a: any, b: any) =>
-        a.DeleteRequestDate.length - b.DeleteRequestDate.length,
+      sorter: (a: any, b: any) => a.DeleteRequestDate.localeCompare(b.DeleteRequestDate),
     },
     {
       title: "Reason for Deletion",
       dataIndex: "ReasonforDeletion",
-
-      sorter: (a: any, b: any) =>
-        a.ReasonforDeletion.length - b.ReasonforDeletion.length,
+      render: (text: any) => (
+        <span className="text-body">{text || 'No reason provided'}</span>
+      ),
+      sorter: (a: any, b: any) => (a.ReasonforDeletion || '').localeCompare(b.ReasonforDeletion || ''),
     },
     {
       title: "Status",
       dataIndex: "Status",
       render: (text: any) => (
-        <>
-          <span
-            className={`badge badge-pill badge-status  ${
-              text === "Rejected" ? "bg-danger" : "bg-warning"
-            }`}
-          >
-            {text}
-          </span>
-        </>
+        <span
+          className={`badge badge-pill badge-status ${
+            text === "Rejected" ? "bg-danger" : text === "Approved" ? "bg-success" : "bg-warning"
+          }`}
+        >
+          {text}
+        </span>
       ),
-      sorter: (a: any, b: any) => a.Status.length - b.Status.length,
+      sorter: (a: any, b: any) => a.Status.localeCompare(b.Status),
     },
     {
       title: "Action",
       dataIndex: "Action",
-      render: () => (
-        <div className="dropdown table-action">
-          <Link
-            href="#"
-            className="action-icon btn btn-xs shadow btn-icon btn-outline-light"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
-            <i className="ti ti-dots-vertical" />
-          </Link>
-          <div className="dropdown-menu dropdown-menu-right">
+      render: (_: any, record: any) => (
+        record.Status === 'Pending' ? (
+          <div className="dropdown table-action">
             <Link
-              className="dropdown-item"
               href="#"
-              data-bs-toggle="modal"
-              data-bs-target="#approve_request"
+              className="action-icon btn btn-xs shadow btn-icon btn-outline-light"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
             >
-              <i className="ti ti-check" /> Approve
+              <i className="ti ti-dots-vertical" />
             </Link>
-            <Link
-              className="dropdown-item"
-              href="#"
-              data-bs-toggle="modal"
-              data-bs-target="#reject_request"
-            >
-              <i className="ti ti-x" /> Reject
-            </Link>
+            <div className="dropdown-menu dropdown-menu-right">
+              <Link
+                className="dropdown-item"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedRequestId(record.id);
+                  const modal = document.getElementById('approve_request');
+                  if (modal) {
+                    const bsModal = new (window as any).bootstrap.Modal(modal);
+                    bsModal.show();
+                  }
+                }}
+              >
+                <i className="ti ti-check" /> Approve
+              </Link>
+              <Link
+                className="dropdown-item"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedRequestId(record.id);
+                  const modal = document.getElementById('reject_request');
+                  if (modal) {
+                    const bsModal = new (window as any).bootstrap.Modal(modal);
+                    bsModal.show();
+                  }
+                }}
+              >
+                <i className="ti ti-x" /> Reject
+              </Link>
+            </div>
           </div>
-        </div>
+        ) : (
+          <span className="text-muted">-</span>
+        )
       ),
-      sorter: (a: any, b: any) => a.Action.length - b.Action.length,
     },
   ];
-
-  const [searchText, setSearchText] = useState<string>("");
 
   const handleSearch = (value: string) => {
     setSearchText(value);
@@ -150,7 +215,7 @@ const DeleteRequestComponent = () => {
           {/* Page Header */}
           <PageHeader
             title="Delete Account Request"
-            badgeCount={152}
+            badgeCount={totalRequests}
             showModuleTile={false}
             showExport={true}
           />
@@ -637,12 +702,24 @@ const DeleteRequestComponent = () => {
               {/* table header */}
               {/* Contact List */}
               <div className="custom-table">
-                <Datatable
-                  columns={columns}
-                  dataSource={data}
-                  Selection={true}
-                  searchText=""
-                />
+                {loading ? (
+                  <div className="text-center p-4">
+                    <div className="spinner-border" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                ) : tableData.length === 0 ? (
+                  <div className="text-center p-4">
+                    <p className="text-muted">No delete requests found</p>
+                  </div>
+                ) : (
+                  <Datatable
+                    columns={columns}
+                    dataSource={tableData}
+                    Selection={true}
+                    searchText={searchText}
+                  />
+                )}
               </div>
 
               {/* /Contact List */}
@@ -658,6 +735,85 @@ const DeleteRequestComponent = () => {
       {/* ========================
 			End Page Content
 		========================= */}
+      {/* Approve Request Modal */}
+      <div className="modal fade" id="approve_request">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Approve Delete Request</h5>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              />
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to approve this delete request? This will permanently delete the user account and cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-light"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  if (selectedRequestId) {
+                    handleApprove(selectedRequestId);
+                  }
+                }}
+              >
+                Approve & Delete User
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Reject Request Modal */}
+      <div className="modal fade" id="reject_request">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Reject Delete Request</h5>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              />
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to reject this delete request? The user account will remain active.</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-light"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => {
+                  if (selectedRequestId) {
+                    handleReject(selectedRequestId);
+                  }
+                }}
+              >
+                Reject Request
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 };
