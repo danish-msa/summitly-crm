@@ -107,6 +107,42 @@ th {
 .table-search {
     margin-bottom: 20px;
 }
+
+// Fix dropdown menu positioning in tables
+.table-action {
+    position: relative;
+    
+    .dropdown-menu {
+        position: fixed !important;
+        z-index: 1050 !important;
+        overflow: visible !important;
+        max-height: none !important;
+        transform: none !important;
+    }
+}
+
+// Ensure table containers don't clip dropdowns
+.custom-table,
+.table-responsive {
+    .table-action {
+        .dropdown-menu {
+            position: fixed !important;
+            z-index: 1050 !important;
+        }
+    }
+}
+
+// Fix for Ant Design table - ensure dropdowns can escape
+.ant-table-wrapper,
+.ant-table-container,
+.ant-table-body {
+    .table-action {
+        .dropdown-menu {
+            position: fixed !important;
+            z-index: 1050 !important;
+        }
+    }
+}
 .table.dataTable th {
     padding: 8px 16px;
 }

@@ -58,6 +58,70 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
     }
   }, [pipeline]);
 
+  // Helper function to close offcanvas
+  const closeOffcanvas = (offcanvasId: string) => {
+    const offcanvas = document.getElementById(offcanvasId);
+    if (offcanvas) {
+      const Bootstrap = (window as any).bootstrap;
+      if (Bootstrap && Bootstrap.Offcanvas) {
+        const bsOffcanvas = Bootstrap.Offcanvas.getInstance(offcanvas);
+        if (bsOffcanvas) {
+          bsOffcanvas.hide();
+        } else {
+          // Fallback: hide manually
+          offcanvas.classList.remove('show');
+          offcanvas.style.visibility = 'hidden';
+          document.body.classList.remove('offcanvas-backdrop');
+          const backdrop = document.querySelector('.offcanvas-backdrop');
+          if (backdrop) {
+            backdrop.remove();
+          }
+        }
+      } else {
+        // Fallback: hide manually
+        offcanvas.classList.remove('show');
+        offcanvas.style.visibility = 'hidden';
+        document.body.classList.remove('offcanvas-backdrop');
+        const backdrop = document.querySelector('.offcanvas-backdrop');
+        if (backdrop) {
+          backdrop.remove();
+        }
+      }
+    }
+  };
+
+  // Helper function to close modal
+  const closeModal = (modalId: string) => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      const Bootstrap = (window as any).bootstrap;
+      if (Bootstrap && Bootstrap.Modal) {
+        const bsModal = Bootstrap.Modal.getInstance(modal);
+        if (bsModal) {
+          bsModal.hide();
+        } else {
+          // Fallback: hide manually
+          modal.classList.remove('show');
+          modal.style.display = 'none';
+          document.body.classList.remove('modal-open');
+          const backdrop = document.querySelector('.modal-backdrop');
+          if (backdrop) {
+            backdrop.remove();
+          }
+        }
+      } else {
+        // Fallback: hide manually
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+          backdrop.remove();
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -101,8 +165,22 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
         // Show success modal
         const successModal = document.getElementById('create_success');
         if (successModal) {
-          const bsModal = new (window as any).bootstrap.Modal(successModal);
-          bsModal.show();
+          const Bootstrap = (window as any).bootstrap;
+          if (Bootstrap && Bootstrap.Modal) {
+            let bsModal = Bootstrap.Modal.getInstance(successModal);
+            if (!bsModal) {
+              bsModal = new Bootstrap.Modal(successModal);
+            }
+            bsModal.show();
+          } else {
+            // Fallback: show modal manually
+            successModal.classList.add('show');
+            successModal.style.display = 'block';
+            document.body.classList.add('modal-open');
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+          }
         }
 
         // Reset form
@@ -145,15 +223,7 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
 
     setStages([...stages, newStage]);
     setNewStageName('');
-
-    // Close add stage modal
-    const modal = document.getElementById('add_stage');
-    if (modal) {
-      const bsModal = (window as any).bootstrap?.Modal.getInstance(modal);
-      if (bsModal) {
-        bsModal.hide();
-      }
-    }
+    closeModal('add_stage');
   };
 
   const handleEditStage = (index: number) => {
@@ -197,15 +267,7 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
     }));
     setStages(reorderedStages);
     setStageToDelete(null);
-
-    // Close delete modal
-    const modal = document.getElementById('delete_stage');
-    if (modal) {
-      const bsModal = (window as any).bootstrap?.Modal.getInstance(modal);
-      if (bsModal) {
-        bsModal.hide();
-      }
-    }
+    closeModal('delete_stage');
   };
 
   const handleRemoveAccessUser = (userId: string) => {
@@ -307,8 +369,22 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                               handleEditStage(index);
                               const modal = document.getElementById('edit_stage');
                               if (modal) {
-                                const bsModal = new (window as any).bootstrap.Modal(modal);
-                                bsModal.show();
+                                const Bootstrap = (window as any).bootstrap;
+                                if (Bootstrap && Bootstrap.Modal) {
+                                  let bsModal = Bootstrap.Modal.getInstance(modal);
+                                  if (!bsModal) {
+                                    bsModal = new Bootstrap.Modal(modal);
+                                  }
+                                  bsModal.show();
+                                } else {
+                                  // Fallback: show modal manually
+                                  modal.classList.add('show');
+                                  modal.style.display = 'block';
+                                  document.body.classList.add('modal-open');
+                                  const backdrop = document.createElement('div');
+                                  backdrop.className = 'modal-backdrop fade show';
+                                  document.body.appendChild(backdrop);
+                                }
                               }
                             }}
                           >
@@ -323,8 +399,22 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                               setStageToDelete(index);
                               const modal = document.getElementById('delete_stage');
                               if (modal) {
-                                const bsModal = new (window as any).bootstrap.Modal(modal);
-                                bsModal.show();
+                                const Bootstrap = (window as any).bootstrap;
+                                if (Bootstrap && Bootstrap.Modal) {
+                                  let bsModal = Bootstrap.Modal.getInstance(modal);
+                                  if (!bsModal) {
+                                    bsModal = new Bootstrap.Modal(modal);
+                                  }
+                                  bsModal.show();
+                                } else {
+                                  // Fallback: show modal manually
+                                  modal.classList.add('show');
+                                  modal.style.display = 'block';
+                                  document.body.classList.add('modal-open');
+                                  const backdrop = document.createElement('div');
+                                  backdrop.className = 'modal-backdrop fade show';
+                                  document.body.appendChild(backdrop);
+                                }
                               }
                             }}
                           >
@@ -417,6 +507,7 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                 type="button"
                 data-bs-dismiss="offcanvas"
                 className="btn btn-light me-2"
+                onClick={() => closeOffcanvas('offcanvas_add')}
               >
                 Cancel
               </button>
@@ -446,6 +537,7 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
             className="btn-close custom-btn-close border p-1 me-0 d-flex align-items-center justify-content-center rounded-circle"
             data-bs-dismiss="offcanvas"
             aria-label="Close"
+            onClick={() => closeOffcanvas('offcanvas_edit')}
           ></button>
         </div>
         <div className="offcanvas-body">
@@ -510,8 +602,22 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                               handleEditStage(index);
                               const modal = document.getElementById('edit_stage');
                               if (modal) {
-                                const bsModal = new (window as any).bootstrap.Modal(modal);
-                                bsModal.show();
+                                const Bootstrap = (window as any).bootstrap;
+                                if (Bootstrap && Bootstrap.Modal) {
+                                  let bsModal = Bootstrap.Modal.getInstance(modal);
+                                  if (!bsModal) {
+                                    bsModal = new Bootstrap.Modal(modal);
+                                  }
+                                  bsModal.show();
+                                } else {
+                                  // Fallback: show modal manually
+                                  modal.classList.add('show');
+                                  modal.style.display = 'block';
+                                  document.body.classList.add('modal-open');
+                                  const backdrop = document.createElement('div');
+                                  backdrop.className = 'modal-backdrop fade show';
+                                  document.body.appendChild(backdrop);
+                                }
                               }
                             }}
                           >
@@ -526,8 +632,22 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                               setStageToDelete(index);
                               const modal = document.getElementById('delete_stage');
                               if (modal) {
-                                const bsModal = new (window as any).bootstrap.Modal(modal);
-                                bsModal.show();
+                                const Bootstrap = (window as any).bootstrap;
+                                if (Bootstrap && Bootstrap.Modal) {
+                                  let bsModal = Bootstrap.Modal.getInstance(modal);
+                                  if (!bsModal) {
+                                    bsModal = new Bootstrap.Modal(modal);
+                                  }
+                                  bsModal.show();
+                                } else {
+                                  // Fallback: show modal manually
+                                  modal.classList.add('show');
+                                  modal.style.display = 'block';
+                                  document.body.classList.add('modal-open');
+                                  const backdrop = document.createElement('div');
+                                  backdrop.className = 'modal-backdrop fade show';
+                                  document.body.appendChild(backdrop);
+                                }
                               }
                             }}
                           >
@@ -617,6 +737,7 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                 type="button"
                 data-bs-dismiss="offcanvas"
                 className="btn btn-light me-2"
+                onClick={() => closeOffcanvas('offcanvas_edit')}
               >
                 Cancel
               </button>
@@ -643,6 +764,7 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                 className="btn-close custom-btn-close border p-1 me-0 text-dark"
                 data-bs-dismiss="modal"
                 aria-label="Close"
+                onClick={() => closeModal('add_stage')}
               ></button>
             </div>
             <form
@@ -671,6 +793,10 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                   href="#"
                   className="btn btn-light me-2"
                   data-bs-dismiss="modal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    closeModal('add_stage');
+                  }}
                 >
                   Cancel
                 </Link>
@@ -694,19 +820,14 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                 className="btn-close custom-btn-close border p-1 me-0 text-dark"
                 data-bs-dismiss="modal"
                 aria-label="Close"
+                onClick={() => closeModal('edit_stage')}
               ></button>
             </div>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSaveStageEdit();
-                const modal = document.getElementById('edit_stage');
-                if (modal) {
-                  const bsModal = (window as any).bootstrap?.Modal.getInstance(modal);
-                  if (bsModal) {
-                    bsModal.hide();
-                  }
-                }
+                closeModal('edit_stage');
               }}
             >
               <div className="modal-body">
@@ -728,6 +849,10 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                   href="#"
                   className="btn btn-light me-2"
                   data-bs-dismiss="modal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    closeModal('edit_stage');
+                  }}
                 >
                   Cancel
                 </Link>
@@ -760,6 +885,10 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                   href="#"
                   className="btn btn-light position-relative z-1 me-2 w-100"
                   data-bs-dismiss="modal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    closeModal('delete_stage');
+                  }}
                 >
                   Cancel
                 </Link>
@@ -797,13 +926,20 @@ const ModalPipeline = ({ pipeline, onSuccess }: ModalPipelineProps) => {
                   href="#"
                   className="btn btn-light position-relative z-1 me-2 w-100"
                   data-bs-dismiss="modal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    closeModal('create_success');
+                  }}
                 >
                   Cancel
                 </Link>
                 <Link
                   href={all_routes.pipeline}
                   className="btn btn-primary position-relative z-1 w-100"
-                  data-bs-dismiss="modal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    closeModal('create_success');
+                  }}
                 >
                   View Details
                 </Link>

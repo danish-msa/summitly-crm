@@ -22,6 +22,23 @@ const PipelineComponent = () => {
     fetchPipelines();
   }, []);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.table-action')) {
+        document.querySelectorAll('.dropdown-menu.show').forEach((menu) => {
+          menu.classList.remove('show');
+        });
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   const fetchPipelines = async () => {
     try {
       setLoading(true);
@@ -58,8 +75,22 @@ const PipelineComponent = () => {
     setEditingPipeline(pipeline);
     const offcanvas = document.getElementById('offcanvas_edit');
     if (offcanvas) {
-      const bsOffcanvas = new (window as any).bootstrap.Offcanvas(offcanvas);
-      bsOffcanvas.show();
+      const Bootstrap = (window as any).bootstrap;
+      if (Bootstrap && Bootstrap.Offcanvas) {
+        let bsOffcanvas = Bootstrap.Offcanvas.getInstance(offcanvas);
+        if (!bsOffcanvas) {
+          bsOffcanvas = new Bootstrap.Offcanvas(offcanvas);
+        }
+        bsOffcanvas.show();
+      } else {
+        // Fallback: show offcanvas manually
+        offcanvas.classList.add('show');
+        offcanvas.style.visibility = 'visible';
+        document.body.classList.add('offcanvas-backdrop');
+        const backdrop = document.createElement('div');
+        backdrop.className = 'offcanvas-backdrop fade show';
+        document.body.appendChild(backdrop);
+      }
     }
   };
 
@@ -72,9 +103,30 @@ const PipelineComponent = () => {
         fetchPipelines();
         const modal = document.getElementById('delete_modal');
         if (modal) {
-          const bsModal = (window as any).bootstrap?.Modal.getInstance(modal);
-          if (bsModal) {
-            bsModal.hide();
+          const Bootstrap = (window as any).bootstrap;
+          if (Bootstrap && Bootstrap.Modal) {
+            const bsModal = Bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+              bsModal.hide();
+            } else {
+              // Fallback: hide manually
+              modal.classList.remove('show');
+              modal.style.display = 'none';
+              document.body.classList.remove('modal-open');
+              const backdrop = document.querySelector('.modal-backdrop');
+              if (backdrop) {
+                backdrop.remove();
+              }
+            }
+          } else {
+            // Fallback: hide manually
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+              backdrop.remove();
+            }
           }
         }
         setPipelineToDelete(null);
@@ -164,15 +216,59 @@ const PipelineComponent = () => {
               className="action-icon btn btn-xs shadow btn-icon btn-outline-light"
               data-bs-toggle="dropdown"
               aria-expanded="false"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.currentTarget;
+                const dropdown = button.nextElementSibling as HTMLElement;
+                if (dropdown) {
+                  // Close all other dropdowns
+                  document.querySelectorAll('.dropdown-menu.show').forEach((menu) => {
+                    menu.classList.remove('show');
+                  });
+                  
+                  // Calculate position relative to viewport (fixed positioning is viewport-relative)
+                  const rect = button.getBoundingClientRect();
+                  dropdown.style.position = 'fixed';
+                  dropdown.style.top = `${rect.bottom + 4}px`;
+                  dropdown.style.right = `${window.innerWidth - rect.right}px`;
+                  dropdown.style.left = 'auto';
+                  dropdown.style.zIndex = '1050';
+                  dropdown.style.display = 'block';
+                  dropdown.classList.add('show');
+                  
+                  // Close on outside click
+                  setTimeout(() => {
+                    const closeHandler = (event: MouseEvent) => {
+                      const target = event.target as HTMLElement;
+                      if (!dropdown.contains(target) && !button.contains(target)) {
+                        dropdown.classList.remove('show');
+                        dropdown.style.display = 'none';
+                        document.removeEventListener('click', closeHandler);
+                      }
+                    };
+                    document.addEventListener('click', closeHandler);
+                  }, 0);
+                }
+              }}
             >
               <i className="ti ti-dots-vertical" />
             </Link>
-            <div className="dropdown-menu dropdown-menu-right">
+            <div 
+              className="dropdown-menu dropdown-menu-end"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Link
                 className="dropdown-item"
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
+                  // Close dropdown
+                  const dropdown = e.currentTarget.closest('.dropdown-menu');
+                  if (dropdown) {
+                    dropdown.classList.remove('show');
+                  }
                   if (pipeline) handleEdit(pipeline);
                 }}
               >
@@ -183,12 +279,32 @@ const PipelineComponent = () => {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
+                  // Close dropdown
+                  const dropdown = e.currentTarget.closest('.dropdown-menu');
+                  if (dropdown) {
+                    dropdown.classList.remove('show');
+                  }
                   if (pipeline) {
                     setPipelineToDelete(pipeline);
                     const modal = document.getElementById('delete_modal');
                     if (modal) {
-                      const bsModal = new (window as any).bootstrap.Modal(modal);
-                      bsModal.show();
+                      const Bootstrap = (window as any).bootstrap;
+                      if (Bootstrap && Bootstrap.Modal) {
+                        let bsModal = Bootstrap.Modal.getInstance(modal);
+                        if (!bsModal) {
+                          bsModal = new Bootstrap.Modal(modal);
+                        }
+                        bsModal.show();
+                      } else {
+                        // Fallback: show modal manually
+                        modal.classList.add('show');
+                        modal.style.display = 'block';
+                        document.body.classList.add('modal-open');
+                        const backdrop = document.createElement('div');
+                        backdrop.className = 'modal-backdrop fade show';
+                        document.body.appendChild(backdrop);
+                      }
                     }
                   }
                 }}
@@ -635,7 +751,29 @@ const PipelineComponent = () => {
                     href="#"
                     className="btn btn-light position-relative z-1 me-2 w-100"
                     data-bs-dismiss="modal"
-                    onClick={() => setPipelineToDelete(null)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPipelineToDelete(null);
+                      const modal = document.getElementById('delete_modal');
+                      if (modal) {
+                        const Bootstrap = (window as any).bootstrap;
+                        if (Bootstrap && Bootstrap.Modal) {
+                          const bsModal = Bootstrap.Modal.getInstance(modal);
+                          if (bsModal) {
+                            bsModal.hide();
+                          }
+                        } else {
+                          // Fallback: hide manually
+                          modal.classList.remove('show');
+                          modal.style.display = 'none';
+                          document.body.classList.remove('modal-open');
+                          const backdrop = document.querySelector('.modal-backdrop');
+                          if (backdrop) {
+                            backdrop.remove();
+                          }
+                        }
+                      }
+                    }}
                   >
                     Cancel
                   </Link>

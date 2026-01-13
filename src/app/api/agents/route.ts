@@ -125,44 +125,76 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Automatically assign pre-defined tasks from active templates
-    // Skip if skipTaskAssignment is explicitly set to true
-    if (body.skipTaskAssignment !== true) {
+    // Automatically create AgentOnboarding and enroll in pipeline
+    // Skip if skipOnboarding is explicitly set to true
+    if (body.skipOnboarding !== true) {
       try {
-        // Get all active task templates
-        const activeTemplates = await prisma.taskTemplate.findMany({
-          where: {
-            isActive: true,
-          },
-          orderBy: {
-            order: 'asc',
+        // Create AgentOnboarding record
+        const onboarding = await prisma.agentOnboarding.create({
+          data: {
+            agentId: agent.id,
+            status: 'Invited',
+            role: body.role || null,
+            assignedOffice: body.assignedOffice || null,
+            assignedTeam: body.assignedTeam || null,
+            invitedBy: body.invitedBy || body.assignedBy || null,
           },
         });
 
-        // Create tasks from templates
-        if (activeTemplates.length > 0) {
-          const tasksToCreate = activeTemplates.map((template) => ({
-            title: template.name,
-            description: template.description,
-            category: template.category,
-            priority: template.priority as 'Low' | 'Medium' | 'High' | 'Urgent',
-            status: 'Pending' as const,
-            agentId: agent.id,
-            templateId: template.id,
-            isCompleted: false,
-            assignedBy: body.assignedBy || null,
-          }));
+        // Find "Agent Onboarding" pipeline
+        const onboardingPipeline = await prisma.pipeline.findFirst({
+          where: {
+            name: {
+              contains: 'Agent Onboarding',
+              mode: 'insensitive',
+            },
+            status: 'Active',
+          },
+          include: {
+            stages: {
+              orderBy: {
+                order: 'asc',
+              },
+            },
+          },
+        });
 
-          await prisma.task.createMany({
-            data: tasksToCreate,
-          });
+        if (onboardingPipeline && onboardingPipeline.stages.length > 0) {
+          // Get first stage
+          const firstStage = onboardingPipeline.stages[0];
 
-          console.log(`✅ Assigned ${activeTemplates.length} tasks to agent ${agent.id}`);
+          // Enter first stage (assigns tasks and updates onboarding)
+          try {
+            const { enterStage } = await import('@/core/utils/onboarding-stage-handler');
+            const result = await enterStage(agent.id, firstStage.id, body.assignedBy || body.invitedBy);
+            
+            // Update pipeline reference
+            await prisma.agentOnboarding.update({
+              where: { id: onboarding.id },
+              data: {
+                pipelineId: onboardingPipeline.id,
+              },
+            });
+            
+            console.log(`✅ Agent enrolled in pipeline "${onboardingPipeline.name}", entered stage "${firstStage.name}", and ${result.tasksCreated} tasks were assigned`);
+          } catch (stageError: any) {
+            // Log error but don't fail agent creation if stage entry fails
+            console.error('⚠️ Error entering first stage:', stageError);
+            // Still link to pipeline even if stage entry fails
+            await prisma.agentOnboarding.update({
+              where: { id: onboarding.id },
+              data: {
+                pipelineId: onboardingPipeline.id,
+              },
+            });
+          }
+        } else {
+          console.log(`⚠️ "Agent Onboarding" pipeline not found or has no stages. Agent created but not enrolled in pipeline.`);
         }
-      } catch (taskError: any) {
-        // Log error but don't fail agent creation if task assignment fails
-        console.error('⚠️ Error assigning tasks to agent:', taskError);
-        // Continue with agent creation even if task assignment fails
+      } catch (onboardingError: any) {
+        // Log error but don't fail agent creation if onboarding setup fails
+        console.error('⚠️ Error setting up agent onboarding:', onboardingError);
+        // Continue with agent creation even if onboarding setup fails
       }
     }
 

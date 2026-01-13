@@ -128,56 +128,86 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate stages
+    if (!Array.isArray(stages)) {
+      return NextResponse.json(
+        { success: false, error: 'Stages must be an array' },
+        { status: 400 }
+      );
+    }
+
+    // Validate accessUserIds
+    if (!Array.isArray(accessUserIds)) {
+      return NextResponse.json(
+        { success: false, error: 'Access user IDs must be an array' },
+        { status: 400 }
+      );
+    }
+
     // Create pipeline with stages and access users in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create the pipeline
-      const pipeline = await tx.pipeline.create({
-        data: {
-          name: name.trim(),
-          description: description || null,
-          status,
-          accessType,
-          createdBy: createdBy || null,
-        },
-      });
-
-      // Create stages if provided
-      if (stages.length > 0) {
-        await tx.pipelineStage.createMany({
-          data: stages.map((stage: any, index: number) => ({
-            pipelineId: pipeline.id,
-            name: stage.name,
-            order: stage.order !== undefined ? stage.order : index,
-            color: stage.color || null,
-          })),
-        });
-      }
-
-      // Create access users if accessType is 'Selected' and user IDs are provided
-      if (accessType === 'Selected' && accessUserIds.length > 0) {
-        // Note: You'll need to fetch user details from your user service
-        // For now, we'll just store the user IDs
-        await tx.pipelineAccessUser.createMany({
-          data: accessUserIds.map((userId: string) => ({
-            pipelineId: pipeline.id,
-            userId,
-            userName: null, // TODO: Fetch from user service
-            userEmail: null, // TODO: Fetch from user service
-          })),
-        });
-      }
-
-      // Fetch the complete pipeline with relations
-      return await tx.pipeline.findUnique({
-        where: { id: pipeline.id },
-        include: {
-          stages: {
-            orderBy: { order: 'asc' },
+    // Increased timeout for RDS connections which may have higher latency
+    const result = await prisma.$transaction(
+      async (tx) => {
+        // Create the pipeline
+        const pipeline = await tx.pipeline.create({
+          data: {
+            name: name.trim(),
+            description: description || null,
+            status,
+            accessType,
+            createdBy: createdBy || null,
           },
-          accessUsers: true,
-        },
-      });
-    });
+        });
+
+        // Create stages if provided (in parallel if possible)
+        const stagePromises = [];
+        if (stages.length > 0) {
+          // Use createMany for better performance
+          stagePromises.push(
+            tx.pipelineStage.createMany({
+              data: stages.map((stage: any, index: number) => ({
+                pipelineId: pipeline.id,
+                name: stage.name,
+                order: stage.order !== undefined ? stage.order : index,
+                color: stage.color || null,
+              })),
+            })
+          );
+        }
+
+        // Create access users if accessType is 'Selected' and user IDs are provided
+        if (accessType === 'Selected' && accessUserIds.length > 0) {
+          stagePromises.push(
+            tx.pipelineAccessUser.createMany({
+              data: accessUserIds.map((userId: string) => ({
+                pipelineId: pipeline.id,
+                userId,
+                userName: null, // TODO: Fetch from user service
+                userEmail: null, // TODO: Fetch from user service
+              })),
+            })
+          );
+        }
+
+        // Execute all creates in parallel
+        await Promise.all(stagePromises);
+
+        // Fetch the complete pipeline with relations
+        return await tx.pipeline.findUnique({
+          where: { id: pipeline.id },
+          include: {
+            stages: {
+              orderBy: { order: 'asc' },
+            },
+            accessUsers: true,
+          },
+        });
+      },
+      {
+        timeout: 30000, // 30 seconds timeout (increased for RDS latency)
+        maxWait: 10000, // Maximum time to wait for a transaction slot
+      }
+    );
 
     const transformedPipeline = {
       id: result.id,
@@ -216,6 +246,49 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error creating pipeline:', error);
+    
+    // Check for specific Prisma errors
+    if (error.code === 'P2034') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Transaction timeout: The database operation took too long. This may be due to network latency or database load. Please try again in a moment.',
+        },
+        { status: 408 }
+      );
+    }
+    
+    // Check for connection errors
+    if (error.code === 'P1001' || error.message?.includes('connect') || error.message?.includes('timeout')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database connection error: Unable to connect to the database. Please check your connection and try again.',
+        },
+        { status: 503 }
+      );
+    }
+    
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'A pipeline with this name already exists.',
+        },
+        { status: 409 }
+      );
+    }
+    
+    if (error.message?.includes('table') || error.message?.includes('does not exist')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database tables not found. Please run the migration: database/migrations/006_create_pipeline_tables.sql',
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       {
         success: false,

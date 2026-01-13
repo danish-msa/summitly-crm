@@ -114,7 +114,8 @@ export async function PUT(
     }
 
     // Update pipeline with stages and access users in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(
+      async (tx) => {
       // Update the pipeline
       const updateData: any = {};
       if (name !== undefined) updateData.name = name.trim();
@@ -180,7 +181,12 @@ export async function PUT(
           accessUsers: true,
         },
       });
-    });
+      },
+      {
+        timeout: 30000, // 30 seconds timeout (increased for RDS latency)
+        maxWait: 10000, // Maximum time to wait for a transaction slot
+      }
+    );
 
     const transformedPipeline = {
       id: result.id,
@@ -219,6 +225,39 @@ export async function PUT(
     });
   } catch (error: any) {
     console.error('Error updating pipeline:', error);
+    
+    // Check for specific Prisma errors
+    if (error.code === 'P2034') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Transaction timeout: The database operation took too long. This may be due to network latency or database load. Please try again in a moment.',
+        },
+        { status: 408 }
+      );
+    }
+    
+    // Check for connection errors
+    if (error.code === 'P1001' || error.message?.includes('connect') || error.message?.includes('timeout')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database connection error: Unable to connect to the database. Please check your connection and try again.',
+        },
+        { status: 503 }
+      );
+    }
+    
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'A pipeline with this name already exists.',
+        },
+        { status: 409 }
+      );
+    }
+    
     return NextResponse.json(
       {
         success: false,

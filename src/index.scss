@@ -454,10 +454,29 @@ box-shadow: var(--crms-box-shadow);
   .ant-table-wrapper {
     margin-top: 0px !important;
     margin-bottom: 24px;
+    position: relative;
     .ant-table-container {
       border-radius: 0px;
       .ant-table-cell {
         border-radius: 0px;
+      }
+    }
+  }
+  
+  // Fix dropdown menus in tables
+  .table-action {
+    position: relative;
+    z-index: 1;
+    
+    .dropdown-menu {
+      position: fixed !important;
+      z-index: 1050 !important;
+      overflow: visible !important;
+      max-height: none !important;
+      display: none;
+      
+      &.show {
+        display: block;
       }
     }
   }

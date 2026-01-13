@@ -116,6 +116,16 @@ model AgentOnboarding {
   // Admin Notes
   adminNotes            String?   @db.Text @map("admin_notes")
   
+  // Pipeline Integration
+  pipelineId            String?   @map("pipeline_id")
+  pipeline              Pipeline? @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  currentStageId        String?   @map("current_stage_id")
+  currentStage          PipelineStage? @relation(fields: [currentStageId], references: [id], onDelete: SetNull)
+  
+  // Stage progression tracking
+  stageEnteredAt        DateTime? @map("stage_entered_at")
+  stageCompletedAt      DateTime? @map("stage_completed_at")
+  
   // Timestamps
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
@@ -127,6 +137,8 @@ model AgentOnboarding {
   training              OnboardingTraining[]
   auditLogs             OnboardingAuditLog[]
   
+  @@index([pipelineId])
+  @@index([currentStageId])
   @@map("agent_onboarding")
 }
 
@@ -334,7 +346,8 @@ model TaskSet {
   createdBy   String?   @map("created_by") // User ID
   
   // Relations
-  templates   TaskSetTemplate[] // Many-to-many with TaskTemplate
+  templates       TaskSetTemplate[] // Many-to-many with TaskTemplate
+  pipelineStages  PipelineStageTaskSet[] // Many-to-many with PipelineStage
   
   @@index([isActive])
   @@index([category])
@@ -394,12 +407,17 @@ model Task {
   assignedBy  String?   @map("assigned_by") // User ID who assigned the task
   assignedAt  DateTime  @default(now()) @map("assigned_at")
   
+  // Stage tracking (for pipeline-based onboarding)
+  stageId     String?   @map("stage_id")
+  stage       PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  
   // Timestamps
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
   @@index([agentId])
   @@index([templateId])
+  @@index([stageId])
   @@index([status])
   @@index([isCompleted])
   @@index([dueDate])
@@ -426,6 +444,7 @@ model Pipeline {
   // Relations
   stages      PipelineStage[]
   accessUsers PipelineAccessUser[]
+  onboardingRecords AgentOnboarding[] // Agents in this pipeline
   
   @@index([status])
   @@index([accessType])
@@ -445,6 +464,11 @@ model PipelineStage {
   // Timestamps
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  taskSets            PipelineStageTaskSet[] // Many-to-many with TaskSet
+  onboardingRecords   AgentOnboarding[] // Agents currently in this stage
+  tasks               Task[] // Tasks assigned in this stage
   
   @@index([pipelineId])
   @@index([order])
@@ -467,4 +491,26 @@ model PipelineAccessUser {
   @@index([pipelineId])
   @@index([userId])
   @@map("pipeline_access_users")
+}
+
+// Join table for many-to-many relationship between PipelineStage and TaskSet
+model PipelineStageTaskSet {
+  id            String    @id @default(uuid())
+  stageId       String    @map("stage_id")
+  stage         PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  taskSetId     String    @map("task_set_id")
+  taskSet       TaskSet   @relation(fields: [taskSetId], references: [id], onDelete: Cascade)
+  order         Int       @default(0) // Order if multiple task sets per stage
+  isRequired    Boolean   @default(true) @map("is_required")
+  
+  // Stage-specific task deadlines
+  defaultDueDays Int?     @map("default_due_days") // Days from stage entry to task due date
+  
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  @@unique([stageId, taskSetId]) // Prevent duplicate task sets in same stage
+  @@index([stageId])
+  @@index([taskSetId])
+  @@map("pipeline_stage_task_sets")
 }
