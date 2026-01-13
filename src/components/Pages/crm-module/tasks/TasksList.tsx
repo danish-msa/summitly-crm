@@ -250,11 +250,13 @@ const TasksList = ({ searchQuery = "", statusFilter, isCompletedFilter, refreshK
                         </div>
                       )}
                       {task.agent && (
-                        <div className="avatar avatar-xs avatar-rounded me-2">
+                        <div 
+                          className="avatar avatar-xs avatar-rounded me-2"
+                          title={`${task.agent.firstName} ${task.agent.lastName}`}
+                        >
                           <ImageWithBasePath
                             src="assets/img/profiles/avatar-14.jpg"
-                            alt={task.agent.firstName}
-                            title={`${task.agent.firstName} ${task.agent.lastName}`}
+                            alt={`${task.agent.firstName} ${task.agent.lastName}`}
                           />
                         </div>
                       )}
