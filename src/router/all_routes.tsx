@@ -6,6 +6,9 @@ export const all_routes = {
   leadsDashboard: "/dashboard/leads-dashboard",
   projectDashboard: "/dashboard/project-dashboard",
   agentsDashboard: "/dashboard/agents-dashboard",
+  
+  // LaunchPad routes
+  agentsLaunchPad: "/launchpad/agents-launchpad",
 
   //Super Admin
   superadminDashboard:"/super-admin/dashboard",

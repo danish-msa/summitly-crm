@@ -28,6 +28,19 @@ export const SidebarData = [
         ],
       },
       {
+        label: "LaunchPad",
+        link: route.agentsLaunchPad,
+        submenu: true,
+        showSubRoute: false,
+        icon: "rocket",
+        base: "launchpad",
+        materialicons: "start",
+        dot: true,
+        submenuItems: [
+          { label: "Agents LaunchPad", link: route.agentsLaunchPad },
+        ],
+      },
+      {
         label: "Applications",
         link:route.chat,
         submenu: true,

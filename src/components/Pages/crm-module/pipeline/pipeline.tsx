@@ -3,21 +3,109 @@
 import Footer from "@/core/common/footer/footer";
 import PageHeader from "@/core/common/page-header/pageHeader";
 import PredefinedDatePicker from "@/core/common/common-dateRangePicker/PredefinedDatePicker";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchInput from "@/core/common/dataTable/dataTableSearch";
 import Datatable from "@/core/common/dataTable";
 import ModalPipeline from "./modal/modalPipeline";
-import { PipelineListData } from "../../../../core/json/pipelineListData";
 import Link from "next/link";
 import { all_routes } from "@/router/all_routes";
+import { getPipelines, deletePipeline, Pipeline } from "@/core/services/pipelines.service";
 
 const PipelineComponent = () => {
   const [searchText, setSearchText] = useState<string>("");
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingPipeline, setEditingPipeline] = useState<Pipeline | null>(null);
+  const [pipelineToDelete, setPipelineToDelete] = useState<Pipeline | null>(null);
+
+  useEffect(() => {
+    fetchPipelines();
+  }, []);
+
+  const fetchPipelines = async () => {
+    try {
+      setLoading(true);
+      const response = await getPipelines({
+        search: searchText || undefined,
+        includeStages: true,
+      });
+
+      if (response.success && response.data) {
+        const pipelinesData = Array.isArray(response.data) ? response.data : [response.data];
+        setPipelines(pipelinesData);
+      }
+    } catch (error) {
+      console.error('Error fetching pipelines:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (searchText !== undefined) {
+      const timeoutId = setTimeout(() => {
+        fetchPipelines();
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchText]);
 
   const handleSearch = (value: string) => {
     setSearchText(value);
   };
-  const data = PipelineListData;
+
+  const handleEdit = (pipeline: Pipeline) => {
+    setEditingPipeline(pipeline);
+    const offcanvas = document.getElementById('offcanvas_edit');
+    if (offcanvas) {
+      const bsOffcanvas = new (window as any).bootstrap.Offcanvas(offcanvas);
+      bsOffcanvas.show();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!pipelineToDelete) return;
+
+    try {
+      const response = await deletePipeline(pipelineToDelete.id);
+      if (response.success) {
+        fetchPipelines();
+        const modal = document.getElementById('delete_modal');
+        if (modal) {
+          const bsModal = (window as any).bootstrap?.Modal.getInstance(modal);
+          if (bsModal) {
+            bsModal.hide();
+          }
+        }
+        setPipelineToDelete(null);
+      } else {
+        alert(response.error || 'Failed to delete pipeline');
+      }
+    } catch (error) {
+      console.error('Error deleting pipeline:', error);
+      alert('Failed to delete pipeline');
+    }
+  };
+
+  const handleSuccess = () => {
+    fetchPipelines();
+    setEditingPipeline(null);
+  };
+
+  // Format data for table
+  const data = pipelines.map((pipeline) => ({
+    key: pipeline.id,
+    PipelineName: pipeline.name,
+    TotalDealValue: pipeline.totalDealValue || '$0',
+    NoofDeals: pipeline.numberOfDeals?.toString() || '0',
+    Stages: pipeline.stages?.length?.toString() || '0',
+    CreatedDate: new Date(pipeline.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }),
+    Status: pipeline.status,
+  }));
   const columns = [
     {
       title: "Pipeline Name",
@@ -39,25 +127,9 @@ const PipelineComponent = () => {
       title: "Stages",
       dataIndex: "Stages",
       render: (text: any) => (
-        <div className="pipeline-progress d-flex align-items-center">
-          <div className="progress">
-            <div
-              className={`progress-bar ${
-                text === "Win"
-                  ? "progress-bar-success"
-                  : text === "In Pipeline"
-                  ? "progress-bar-violet"
-                  : text === "Conversation"
-                  ? "progress-bar-green"
-                  : "progress-bar-danger"
-              }`}
-              role="progressbar"
-            />
-          </div>
-          <span>{text}</span>
-        </div>
+        <span className="badge badge-soft-primary">{text} stage{text !== '1' ? 's' : ''}</span>
       ),
-      sorter: (a: any, b: any) => a.Stages.length - b.Stages.length,
+      sorter: (a: any, b: any) => parseInt(a.Stages) - parseInt(b.Stages),
     },
     {
       title: "Created Date",
@@ -83,36 +155,50 @@ const PipelineComponent = () => {
     {
       title: "Action",
       dataIndex: "Action",
-      render: () => (
-        <div className="dropdown table-action">
-          <Link
-            href="#"
-            className="action-icon btn btn-xs shadow btn-icon btn-outline-light"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
-            <i className="ti ti-dots-vertical" />
-          </Link>
-          <div className="dropdown-menu dropdown-menu-right">
+      render: (_: any, record: any) => {
+        const pipeline = pipelines.find((p) => p.id === record.key);
+        return (
+          <div className="dropdown table-action">
             <Link
-              className="dropdown-item"
-              data-bs-toggle="offcanvas"
-              data-bs-target="#offcanvas_edit"
               href="#"
+              className="action-icon btn btn-xs shadow btn-icon btn-outline-light"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
             >
-              <i className="ti ti-edit text-blue" /> Edit
+              <i className="ti ti-dots-vertical" />
             </Link>
-            <Link
-              className="dropdown-item"
-              href="#"
-              data-bs-toggle="modal"
-              data-bs-target="#delete_modal"
-            >
-              <i className="ti ti-trash" /> Delete
-            </Link>
+            <div className="dropdown-menu dropdown-menu-right">
+              <Link
+                className="dropdown-item"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (pipeline) handleEdit(pipeline);
+                }}
+              >
+                <i className="ti ti-edit text-blue" /> Edit
+              </Link>
+              <Link
+                className="dropdown-item"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (pipeline) {
+                    setPipelineToDelete(pipeline);
+                    const modal = document.getElementById('delete_modal');
+                    if (modal) {
+                      const bsModal = new (window as any).bootstrap.Modal(modal);
+                      bsModal.show();
+                    }
+                  }
+                }}
+              >
+                <i className="ti ti-trash" /> Delete
+              </Link>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
       sorter: (a: any, b: any) => a.Action.length - b.Action.length,
     },
   ];
@@ -528,7 +614,47 @@ const PipelineComponent = () => {
       {/* ========================
 			End Page Content
 		========================= */}
-        <ModalPipeline/>
+        <ModalPipeline pipeline={editingPipeline} onSuccess={handleSuccess} />
+        
+        {/* Delete Confirmation Modal */}
+        <div className="modal fade" id="delete_modal">
+          <div className="modal-dialog modal-dialog-centered modal-sm rounded-0">
+            <div className="modal-content rounded-0">
+              <div className="modal-body p-4 text-center position-relative">
+                <div className="mb-3 position-relative z-1">
+                  <span className="avatar avatar-xl badge-soft-danger border-0 text-danger rounded-circle">
+                    <i className="ti ti-trash fs-24" />
+                  </span>
+                </div>
+                <h5 className="mb-1">Delete Confirmation</h5>
+                <p className="mb-3">
+                  Are you sure you want to remove the pipeline "{pipelineToDelete?.name}"?
+                </p>
+                <div className="d-flex justify-content-center">
+                  <Link
+                    href="#"
+                    className="btn btn-light position-relative z-1 me-2 w-100"
+                    data-bs-dismiss="modal"
+                    onClick={() => setPipelineToDelete(null)}
+                  >
+                    Cancel
+                  </Link>
+                  <Link
+                    href="#"
+                    className="btn btn-primary position-relative z-1 w-100"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDelete();
+                    }}
+                  >
+                    Yes, Delete
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* /Delete Confirmation Modal */}
     </>
   );
 };

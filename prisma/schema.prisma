@@ -406,3 +406,65 @@ model Task {
   @@index([createdAt])
   @@map("tasks")
 }
+
+// ============================================
+// Pipeline Module
+// ============================================
+
+model Pipeline {
+  id          String    @id @default(uuid())
+  name        String    @map("name")
+  description String?   @db.Text
+  status      String    @default("Active") // Active, Inactive
+  accessType  String    @default("All") @map("access_type") // All, Selected
+  createdBy   String?   @map("created_by")
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  stages      PipelineStage[]
+  accessUsers PipelineAccessUser[]
+  
+  @@index([status])
+  @@index([accessType])
+  @@index([createdAt])
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id          String    @id @default(uuid())
+  pipelineId  String    @map("pipeline_id")
+  pipeline    Pipeline  @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  
+  name        String
+  order       Int       @default(0)
+  color       String?   // Hex color code for UI display
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  @@index([pipelineId])
+  @@index([order])
+  @@map("pipeline_stages")
+}
+
+model PipelineAccessUser {
+  id          String    @id @default(uuid())
+  pipelineId  String    @map("pipeline_id")
+  pipeline    Pipeline  @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  
+  userId      String    @map("user_id")
+  userName    String?   @map("user_name")
+  userEmail   String?   @map("user_email")
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  @@unique([pipelineId, userId])
+  @@index([pipelineId])
+  @@index([userId])
+  @@map("pipeline_access_users")
+}
