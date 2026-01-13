@@ -172,7 +172,7 @@ export async function PUT(
       }
 
       // Fetch the complete pipeline with relations
-      return await tx.pipeline.findUnique({
+      const updatedPipeline = await tx.pipeline.findUnique({
         where: { id },
         include: {
           stages: {
@@ -181,12 +181,25 @@ export async function PUT(
           accessUsers: true,
         },
       });
+
+      if (!updatedPipeline) {
+        throw new Error('Pipeline not found after update');
+      }
+
+      return updatedPipeline;
       },
       {
         timeout: 30000, // 30 seconds timeout (increased for RDS latency)
         maxWait: 10000, // Maximum time to wait for a transaction slot
       }
     );
+
+    if (!result) {
+      return NextResponse.json(
+        { success: false, error: 'Pipeline not found after update' },
+        { status: 404 }
+      );
+    }
 
     const transformedPipeline = {
       id: result.id,
