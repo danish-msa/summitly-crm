@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getTaskSets, deleteTaskSet, TaskSet } from "@/core/services/tasks.service";
-import { TaskSetResponse } from "@/core/data/interface/task.interface";
+import { getTaskSets, deleteTaskSet } from "@/core/services/tasks.service";
+import { TaskSet, TaskSetResponse } from "@/core/data/interface/task.interface";
 import ModalTaskSet from "./modal/modalTaskSet";
 import ModalAssignTaskSet from "./modal/modalAssignTaskSet";
 import Link from "next/link";
