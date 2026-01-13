@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getAgentTasks, toggleTaskCompletion, Task } from "@/core/services/tasks.service";
-import { TaskResponse } from "@/core/data/interface/task.interface";
+import { getAgentTasks, toggleTaskCompletion } from "@/core/services/tasks.service";
+import { Task, TaskResponse } from "@/core/data/interface/task.interface";
 
 interface AgentTasksChecklistProps {
   agentId: string;
