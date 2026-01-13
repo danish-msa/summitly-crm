@@ -3,11 +3,9 @@ import { useState, useEffect } from "react";
 import { 
   createTaskSet, 
   updateTaskSet, 
-  getTaskTemplates,
-  TaskSet,
-  TaskTemplate 
+  getTaskTemplates
 } from "@/core/services/tasks.service";
-import { TaskSetResponse, TaskTemplateResponse } from "@/core/data/interface/task.interface";
+import { TaskSet, TaskTemplate, TaskSetResponse, TaskTemplateResponse } from "@/core/data/interface/task.interface";
 import MultipleSelect from "@/core/common/multiple-Select/multipleSelect";
 
 interface ModalTaskSetProps {
