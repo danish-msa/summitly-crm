@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getTasks, toggleTaskCompletion, deleteTask, Task } from "@/core/services/tasks.service";
-import { TaskResponse } from "@/core/data/interface/task.interface";
+import { getTasks, toggleTaskCompletion, deleteTask } from "@/core/services/tasks.service";
+import { Task, TaskResponse } from "@/core/data/interface/task.interface";
 import ImageWithBasePath from "@/core/common/imageWithBasePath";
 import Link from "next/link";
 import { all_routes } from "@/router/all_routes";
