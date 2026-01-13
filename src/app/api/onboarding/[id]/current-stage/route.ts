@@ -70,7 +70,7 @@ export async function GET(
     }
 
     // Get tasks for current stage
-    let stageTasks = [];
+    let stageTasks: Awaited<ReturnType<typeof prisma.task.findMany>> = [];
     let stageComplete = false;
     let tasksCompleted = 0;
     let tasksTotal = 0;
