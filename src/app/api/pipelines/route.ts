@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
         await Promise.all(stagePromises);
 
         // Fetch the complete pipeline with relations
-        return await tx.pipeline.findUnique({
+        const createdPipeline = await tx.pipeline.findUnique({
           where: { id: pipeline.id },
           include: {
             stages: {
@@ -202,12 +202,25 @@ export async function POST(request: NextRequest) {
             accessUsers: true,
           },
         });
+
+        if (!createdPipeline) {
+          throw new Error('Pipeline not found after creation');
+        }
+
+        return createdPipeline;
       },
       {
         timeout: 30000, // 30 seconds timeout (increased for RDS latency)
         maxWait: 10000, // Maximum time to wait for a transaction slot
       }
     );
+
+    if (!result) {
+      return NextResponse.json(
+        { success: false, error: 'Pipeline not found after creation' },
+        { status: 500 }
+      );
+    }
 
     const transformedPipeline = {
       id: result.id,
