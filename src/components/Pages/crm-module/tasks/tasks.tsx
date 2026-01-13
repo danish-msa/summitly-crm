@@ -12,7 +12,8 @@ import TasksList from "./TasksList";
 import TaskSetsList from "./TaskSetsList";
 import ModalTaskSet from "./modal/modalTaskSet";
 import { useState, useEffect } from "react";
-import { getTasks, TaskResponse } from "@/core/services/tasks.service";
+import { getTasks } from "@/core/services/tasks.service";
+import { TaskResponse } from "@/core/data/interface/task.interface";
 
 const TasksComponent = () => {
   const [activeTab, setActiveTab] = useState<'tasks' | 'sets'>('tasks');
