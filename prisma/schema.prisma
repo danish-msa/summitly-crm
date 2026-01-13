@@ -387,6 +387,10 @@ model Task {
   agentId     String?   @map("agent_id") // Link to agent
   agent       Agent?    @relation(fields: [agentId], references: [id], onDelete: Cascade)
   
+  // User Assignment
+  userId      String?   @map("user_id") // Link to user
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   // Template Reference (optional - for tracking which template was used)
   templateId  String?   @map("template_id")
   template    TaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -416,6 +420,7 @@ model Task {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
   @@index([agentId])
+  @@index([userId])
   @@index([templateId])
   @@index([stageId])
   @@index([status])
@@ -545,6 +550,7 @@ model User {
   roleId      String?   @map("role_id")
   role        Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
   deleteRequests DeleteRequest[]
+  tasks       Task[]    // Tasks assigned to this user
   
   // Timestamps
   createdAt   DateTime  @default(now()) @map("created_at")

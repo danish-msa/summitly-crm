@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
     const agentId = searchParams.get('agentId');
+    const userId = searchParams.get('userId');
     const isCompleted = searchParams.get('isCompleted');
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
@@ -35,6 +36,10 @@ export async function GET(request: NextRequest) {
       where.agentId = agentId;
     }
 
+    if (userId) {
+      where.userId = userId;
+    }
+
     if (isCompleted !== null && isCompleted !== undefined) {
       where.isCompleted = isCompleted === 'true';
     }
@@ -53,6 +58,15 @@ export async function GET(request: NextRequest) {
               firstName: true,
               lastName: true,
               email: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
             },
           },
           template: true,
@@ -105,6 +119,7 @@ export async function POST(request: NextRequest) {
         priority: body.priority || 'Medium',
         status: body.status || 'Pending',
         agentId: body.agentId || null,
+        userId: body.userId || null,
         templateId: body.templateId || null,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         tags: body.tags ? (Array.isArray(body.tags) ? body.tags : [body.tags]) : [],
@@ -121,6 +136,15 @@ export async function POST(request: NextRequest) {
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
           },
         },
         template: true,

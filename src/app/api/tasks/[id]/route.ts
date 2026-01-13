@@ -25,6 +25,15 @@ export async function GET(
             email: true,
           },
         },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
         template: true,
       },
     });
@@ -105,6 +114,7 @@ export async function PUT(
     if (body.tags !== undefined) updateData.tags = Array.isArray(body.tags) ? body.tags : [body.tags];
     if (body.notes !== undefined) updateData.notes = body.notes;
     if (body.agentId !== undefined) updateData.agentId = body.agentId || null;
+    if (body.userId !== undefined) updateData.userId = body.userId || null;
     if (body.templateId !== undefined) updateData.templateId = body.templateId || null;
 
     // Update task
@@ -118,6 +128,15 @@ export async function PUT(
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
           },
         },
         template: true,

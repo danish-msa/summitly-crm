@@ -18,6 +18,8 @@ import Link from "next/link";
 import { createTask } from "@/core/services/tasks.service";
 import { getAgents } from "@/core/services/agents.service";
 import { Agent } from "@/core/data/interface/agent.interface";
+import { getUsers } from "@/core/services/users.service";
+import { User } from "@/core/data/interface/user.interface";
 
 interface ModalTaskProps {
   onSuccess?: () => void;
@@ -25,8 +27,11 @@ interface ModalTaskProps {
 
 const ModalTask = ({ onSuccess }: ModalTaskProps) => {
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form state
@@ -42,9 +47,10 @@ const ModalTask = ({ onSuccess }: ModalTaskProps) => {
 
   const [tags, setTags] = useState<string[]>([]);
 
-  // Fetch agents on mount
+  // Fetch agents and users on mount
   useEffect(() => {
     fetchAgents();
+    fetchUsers();
   }, []);
 
   const fetchAgents = async () => {
@@ -61,8 +67,35 @@ const ModalTask = ({ onSuccess }: ModalTaskProps) => {
     }
   };
 
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await getUsers({ limit: 100, includeRole: false });
+      if (response.success && response.data) {
+        setUsers(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const handleChange = (value: string[]) => {
     setSelectedAgentIds(value);
+    // Clear user selection if agent is selected
+    if (value.length > 0) {
+      setSelectedUserId(null);
+    }
+  };
+
+  const handleUserChange = (option: Option | null) => {
+    const userId = option?.value || null;
+    setSelectedUserId(userId);
+    // Clear agent selection if user is selected
+    if (userId) {
+      setSelectedAgentIds([]);
+    }
   };
 
   const handleTagsChange = (newTags: string[]) => {
@@ -99,24 +132,22 @@ const ModalTask = ({ onSuccess }: ModalTaskProps) => {
       return;
     }
 
-    // Validate agent selection
-    if (selectedAgentIds.length === 0) {
-      alert("Please select at least one agent");
+    // Validate assignment - must have either agent or user
+    if (selectedAgentIds.length === 0 && !selectedUserId) {
+      alert("Please select either an agent or a user to assign this task");
       setIsSubmitting(false);
       return;
     }
 
     try {
-      // Create task for the first selected agent (or you can create multiple tasks)
-      const agentId = selectedAgentIds[0];
-      
       const taskData = {
         title: formData.title,
         description: formData.description || undefined,
         category: formData.category || undefined,
         priority: (formData.priority !== "Select" ? formData.priority : "Medium") as "Low" | "Medium" | "High" | "Urgent",
         status: (formData.status !== "Select" ? formData.status : "Pending") as "Pending" | "In Progress" | "Completed" | "Cancelled",
-        agentId: agentId,
+        agentId: selectedAgentIds.length > 0 ? selectedAgentIds[0] : undefined,
+        userId: selectedUserId || undefined,
         dueDate: formData.dueDate || undefined,
         tags: tags.length > 0 ? tags : undefined,
       };
@@ -136,6 +167,7 @@ const ModalTask = ({ onSuccess }: ModalTaskProps) => {
         });
         setTags([]);
         setSelectedAgentIds([]);
+        setSelectedUserId(null);
         
         // Close modal
         const offcanvas = document.getElementById("offcanvas_add");
@@ -254,7 +286,7 @@ const ModalTask = ({ onSuccess }: ModalTaskProps) => {
                 <div className="col-md-12">
                   <div className="mb-3">
                     <label className="form-label">
-                      Assign to Agent <span className="text-danger">*</span>
+                      Assign to Agent
                     </label>
                     {loadingAgents ? (
                       <div className="text-muted">Loading agents...</div>
@@ -263,9 +295,39 @@ const ModalTask = ({ onSuccess }: ModalTaskProps) => {
                         value={selectedAgentIds}
                         onChange={handleChange}
                         options={agentOptions}
-                        placeholder="Select an agent"
+                        placeholder="Select an agent (optional)"
                       />
                     )}
+                  </div>
+                </div>
+                <div className="col-md-12">
+                  <div className="mb-3">
+                    <label className="form-label">
+                      Assign to User
+                    </label>
+                    {loadingUsers ? (
+                      <div className="text-muted">Loading users...</div>
+                    ) : (
+                      <CommonSelect
+                        options={users.map(user => ({
+                          value: user.id,
+                          label: `${user.firstName} ${user.lastName || ''} (${user.email})`.trim()
+                        }))}
+                        className="select"
+                        value={selectedUserId ? {
+                          value: selectedUserId,
+                          label: (() => {
+                            const user = users.find(u => u.id === selectedUserId);
+                            return user ? `${user.firstName} ${user.lastName || ''} (${user.email})`.trim() : '';
+                          })()
+                        } : undefined}
+                        onChange={handleUserChange}
+                        placeholder="Select a user (optional)"
+                      />
+                    )}
+                    <small className="text-muted d-block mt-1">
+                      Select either an agent or a user to assign this task
+                    </small>
                   </div>
                 </div>
                 <div className="col-md-6">

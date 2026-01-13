@@ -36,6 +36,16 @@ export interface Task {
     email: string;
   };
   
+  // User Assignment
+  userId?: string;
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName?: string;
+  };
+  
   // Template Reference
   templateId?: string;
   template?: TaskTemplate;
