@@ -42,6 +42,7 @@ const ModalAssignTaskSet = ({ taskSetId, taskSetName, onSuccess }: ModalAssignTa
     setIsSubmitting(true);
     try {
       const response = await assignTaskSetToAgent(taskSetId, {
+        taskSetId: taskSetId,
         agentId: selectedAgentId,
       });
 
