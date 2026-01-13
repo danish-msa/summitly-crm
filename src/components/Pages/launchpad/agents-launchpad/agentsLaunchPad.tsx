@@ -20,6 +20,11 @@ interface OnboardingStats {
     newHiresToOnboard: number;
     incomingOnboardingRecords: number;
     convertToAgent: number;
+    documentsPendingReview: number;
+    overdueTasks: number;
+    invitationsNotAccepted: number;
+    documentsRejected: number;
+    expiringDocuments: number;
   };
   onboardingStatus: {
     newHiresInQueue: number;
@@ -37,12 +42,48 @@ interface OnboardingStats {
   }>;
 }
 
+interface StageAgent {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone1?: string;
+  image?: string;
+  status: string;
+  onboardingStatus: string;
+  onboardingId: string;
+  stageEnteredAt?: string;
+  createdAt: string;
+}
+
+interface StageData {
+  id: string;
+  name: string;
+  order: number;
+  color?: string;
+  agents: StageAgent[];
+  agentCount: number;
+}
+
+interface StagesData {
+  pipeline: {
+    id: string;
+    name: string;
+    description?: string;
+  } | null;
+  stages: StageData[];
+  noStageAgents: StageAgent[];
+}
+
 const AgentsLaunchPadComponent = () => {
   const [stats, setStats] = useState<OnboardingStats | null>(null);
+  const [stagesData, setStagesData] = useState<StagesData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStages, setLoadingStages] = useState(true);
 
   useEffect(() => {
     fetchStats();
+    fetchStages();
   }, []);
 
   const fetchStats = async () => {
@@ -60,6 +101,24 @@ const AgentsLaunchPadComponent = () => {
       console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStages = async () => {
+    try {
+      setLoadingStages(true);
+      const response = await fetch('/api/onboarding/stages');
+      const data = await response.json();
+      
+      if (data.success) {
+        setStagesData(data.data);
+      } else {
+        console.error('Failed to fetch stages:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching stages:', error);
+    } finally {
+      setLoadingStages(false);
     }
   };
 
@@ -199,7 +258,7 @@ const AgentsLaunchPadComponent = () => {
                     Please complete your pending tasks before due.
                   </p>
                   <div className="row">
-                    <div className="col-md-4 mb-3">
+                    <div className="col-md-4 col-lg-3 mb-3">
                       <div className="card border border-warning">
                         <div className="card-body">
                           <div className="d-flex align-items-center justify-content-between">
@@ -219,7 +278,7 @@ const AgentsLaunchPadComponent = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="col-md-4 mb-3">
+                    <div className="col-md-4 col-lg-3 mb-3">
                       <div className="card border border-info">
                         <div className="card-body">
                           <div className="d-flex align-items-center justify-content-between">
@@ -239,21 +298,101 @@ const AgentsLaunchPadComponent = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="col-md-4 mb-3">
-                      <div className="card border border-success">
+                    <div className="col-md-4 col-lg-3 mb-3">
+                      <div className="card border border-danger">
                         <div className="card-body">
                           <div className="d-flex align-items-center justify-content-between">
                             <div>
-                              <h6 className="mb-1">Convert to Agent</h6>
-                              <h4 className="mb-0 text-success">
-                                {loading ? '...' : stats?.pendingActions.convertToAgent || 0}
+                              <h6 className="mb-1">Documents Pending Review</h6>
+                              <h4 className="mb-0 text-danger">
+                                {loading ? '...' : stats?.pendingActions.documentsPendingReview || 0}
                               </h4>
                             </div>
                             <Link
                               href={all_routes.agentsList}
-                              className="btn btn-success btn-sm"
+                              className="btn btn-danger btn-sm"
                             >
-                              Convert Now
+                              Review Now
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-4 col-lg-3 mb-3">
+                      <div className="card border border-primary">
+                        <div className="card-body">
+                          <div className="d-flex align-items-center justify-content-between">
+                            <div>
+                              <h6 className="mb-1">Overdue Tasks</h6>
+                              <h4 className="mb-0 text-primary">
+                                {loading ? '...' : stats?.pendingActions.overdueTasks || 0}
+                              </h4>
+                            </div>
+                            <Link
+                              href={all_routes.tasks}
+                              className="btn btn-primary btn-sm"
+                            >
+                              View Tasks
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-4 col-lg-3 mb-3">
+                      <div className="card border border-secondary">
+                        <div className="card-body">
+                          <div className="d-flex align-items-center justify-content-between">
+                            <div>
+                              <h6 className="mb-1">Invitations Not Accepted</h6>
+                              <h4 className="mb-0 text-secondary">
+                                {loading ? '...' : stats?.pendingActions.invitationsNotAccepted || 0}
+                              </h4>
+                            </div>
+                            <Link
+                              href={all_routes.agentsList}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Follow Up
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-4 col-lg-3 mb-3">
+                      <div className="card border border-warning">
+                        <div className="card-body">
+                          <div className="d-flex align-items-center justify-content-between">
+                            <div>
+                              <h6 className="mb-1">Documents Rejected</h6>
+                              <h4 className="mb-0 text-warning">
+                                {loading ? '...' : stats?.pendingActions.documentsRejected || 0}
+                              </h4>
+                            </div>
+                            <Link
+                              href={all_routes.agentsList}
+                              className="btn btn-warning btn-sm"
+                            >
+                              Review Now
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-4 col-lg-3 mb-3">
+                      <div className="card border border-info">
+                        <div className="card-body">
+                          <div className="d-flex align-items-center justify-content-between">
+                            <div>
+                              <h6 className="mb-1">Expiring Documents</h6>
+                              <h4 className="mb-0 text-info">
+                                {loading ? '...' : stats?.pendingActions.expiringDocuments || 0}
+                              </h4>
+                            </div>
+                            <Link
+                              href={all_routes.agentsList}
+                              className="btn btn-info btn-sm"
+                            >
+                              Review Now
                             </Link>
                           </div>
                         </div>
@@ -418,6 +557,246 @@ const AgentsLaunchPadComponent = () => {
             </div>
           </div>
           {/* End New Hires This Month Table */}
+
+          {/* Pipeline Stages Tables */}
+          {stagesData && stagesData.pipeline && (
+            <div className="row">
+              <div className="col-12 mb-4">
+                <div className="card">
+                  <div className="card-header">
+                    <h6 className="mb-0">
+                      <i className="ti ti-layout-kanban me-2" />
+                      Onboarding Pipeline: {stagesData.pipeline.name}
+                    </h6>
+                    {stagesData.pipeline.description && (
+                      <p className="text-muted mb-0 small">{stagesData.pipeline.description}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {loadingStages ? (
+            <div className="row">
+              <div className="col-12">
+                <div className="card">
+                  <div className="card-body text-center py-5">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading stages...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : stagesData && stagesData.stages.length > 0 ? (
+            stagesData.stages.map((stage) => (
+              <div key={stage.id} className="row mb-4">
+                <div className="col-12">
+                  <div className="card">
+                    <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+                      <div className="d-flex align-items-center gap-2">
+                        {stage.color && (
+                          <span
+                            className="badge"
+                            style={{
+                              backgroundColor: stage.color,
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '4px',
+                              display: 'inline-block',
+                            }}
+                          />
+                        )}
+                        <h6 className="mb-0">
+                          {stage.name} ({stage.agentCount})
+                        </h6>
+                      </div>
+                      <span className="badge badge-soft-primary">
+                        Stage {stage.order + 1}
+                      </span>
+                    </div>
+                    <div className="card-body">
+                      {stage.agents.length === 0 ? (
+                        <div className="text-center py-4 text-muted">
+                          <i className="ti ti-users-off fs-48 mb-3 d-block" />
+                          <p>No agents in this stage</p>
+                        </div>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table table-hover">
+                            <thead className="table-light">
+                              <tr>
+                                <th>Agent Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Onboarding Status</th>
+                                <th>Stage Entered</th>
+                                <th>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stage.agents.map((agent) => (
+                                <tr key={agent.id}>
+                                  <td>
+                                    <div className="d-flex align-items-center">
+                                      {agent.image ? (
+                                        <ImageWithBasePath
+                                          src={agent.image}
+                                          alt={`${agent.firstName} ${agent.lastName}`}
+                                          className="avatar avatar-sm me-2"
+                                        />
+                                      ) : (
+                                        <div className="avatar avatar-sm me-2">
+                                          <span className="avatar-inner bg-primary">
+                                            <i className="ti ti-user fs-14" />
+                                          </span>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <Link
+                                          href={`${all_routes.agentsDetails}?id=${agent.id}`}
+                                          className="fw-medium"
+                                        >
+                                          {agent.firstName} {agent.lastName}
+                                        </Link>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td>{agent.email}</td>
+                                  <td>{agent.phone1 || '-'}</td>
+                                  <td>
+                                    <span className={`badge ${getOnboardingStatusBadge(agent.onboardingStatus)}`}>
+                                      {agent.onboardingStatus}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {agent.stageEnteredAt
+                                      ? new Date(agent.stageEnteredAt).toLocaleDateString('en-US', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                        })
+                                      : '-'}
+                                  </td>
+                                  <td>
+                                    <Link
+                                      href={`${all_routes.agentsDetails}?id=${agent.id}`}
+                                      className="btn btn-sm btn-outline-light"
+                                      title="View Details"
+                                    >
+                                      <i className="ti ti-eye" />
+                                    </Link>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : stagesData && stagesData.stages.length === 0 ? (
+            <div className="row">
+              <div className="col-12">
+                <div className="card">
+                  <div className="card-body text-center py-5 text-muted">
+                    <i className="ti ti-layout-kanban-off fs-48 mb-3 d-block" />
+                    <p>No pipeline stages found. Please set up an onboarding pipeline.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Agents without a stage */}
+          {stagesData && stagesData.noStageAgents.length > 0 && (
+            <div className="row mb-4">
+              <div className="col-12">
+                <div className="card border-warning">
+                  <div className="card-header bg-warning bg-opacity-10">
+                    <h6 className="mb-0">
+                      <i className="ti ti-alert-triangle me-2" />
+                      Agents Without Stage Assignment ({stagesData.noStageAgents.length})
+                    </h6>
+                  </div>
+                  <div className="card-body">
+                    <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Agent Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Onboarding Status</th>
+                            <th>Created</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stagesData.noStageAgents.map((agent) => (
+                            <tr key={agent.id}>
+                              <td>
+                                <div className="d-flex align-items-center">
+                                  {agent.image ? (
+                                    <ImageWithBasePath
+                                      src={agent.image}
+                                      alt={`${agent.firstName} ${agent.lastName}`}
+                                      className="avatar avatar-sm me-2"
+                                    />
+                                  ) : (
+                                    <div className="avatar avatar-sm me-2">
+                                      <span className="avatar-inner bg-warning">
+                                        <i className="ti ti-user fs-14" />
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <Link
+                                      href={`${all_routes.agentsDetails}?id=${agent.id}`}
+                                      className="fw-medium"
+                                    >
+                                      {agent.firstName} {agent.lastName}
+                                    </Link>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>{agent.email}</td>
+                              <td>{agent.phone1 || '-'}</td>
+                              <td>
+                                <span className={`badge ${getOnboardingStatusBadge(agent.onboardingStatus)}`}>
+                                  {agent.onboardingStatus}
+                                </span>
+                              </td>
+                              <td>
+                                {new Date(agent.createdAt).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </td>
+                              <td>
+                                <Link
+                                  href={`${all_routes.agentsDetails}?id=${agent.id}`}
+                                  className="btn btn-sm btn-outline-light"
+                                  title="View Details"
+                                >
+                                  <i className="ti ti-eye" />
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* End Content */}
         <Footer />

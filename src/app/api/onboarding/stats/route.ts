@@ -117,6 +117,68 @@ export async function GET(request: NextRequest) {
       (o) => o.status === 'Awaiting Approval'
     ).length;
 
+    // Documents pending review
+    const documentsPendingReview = await prisma.onboardingDocument.count({
+      where: {
+        status: 'Pending',
+      },
+    });
+
+    // Overdue tasks - tasks past their due date and not completed
+    const now = new Date();
+    const overdueTasks = await prisma.task.count({
+      where: {
+        dueDate: {
+          lt: now,
+        },
+        isCompleted: false,
+        status: {
+          not: 'Cancelled',
+        },
+      },
+    });
+
+    // Invitations not accepted - invitations sent but not accepted
+    const invitationsNotAccepted = await prisma.agentOnboarding.count({
+      where: {
+        invitationSentAt: {
+          not: null,
+        },
+        invitationAcceptedAt: null,
+        OR: [
+          {
+            invitationExpiresAt: null,
+          },
+          {
+            invitationExpiresAt: {
+              gte: now, // Not expired yet
+            },
+          },
+        ],
+      },
+    });
+
+    // Documents rejected - need resubmission
+    const documentsRejected = await prisma.onboardingDocument.count({
+      where: {
+        status: 'Rejected',
+      },
+    });
+
+    // Expiring documents - documents expiring within 30 days
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const expiringDocuments = await prisma.onboardingDocument.count({
+      where: {
+        expiryDate: {
+          gte: now,
+          lte: thirtyDaysFromNow,
+        },
+        isExpired: false,
+        status: 'Approved',
+      },
+    });
+
     // New hires this month with details
     const newHiresThisMonthDetails = await prisma.agent.findMany({
       where: {
@@ -152,6 +214,11 @@ export async function GET(request: NextRequest) {
           newHiresToOnboard,
           incomingOnboardingRecords,
           convertToAgent,
+          documentsPendingReview,
+          overdueTasks,
+          invitationsNotAccepted,
+          documentsRejected,
+          expiringDocuments,
         },
         onboardingStatus: {
           newHiresInQueue,
