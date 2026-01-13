@@ -7,8 +7,8 @@ import {
   createPipeline,
   updatePipeline,
   Pipeline,
-  PipelineStage,
 } from "@/core/services/pipelines.service";
+import { PipelineStage } from "@/core/data/interface/pipeline.interface";
 
 interface ModalPipelineProps {
   pipeline?: Pipeline | null;
