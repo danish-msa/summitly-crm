@@ -11,6 +11,7 @@ export interface SelectProps {
   defaultValue?: Option;
   className?: string;
   styles?: any;
+  placeholder?: string;
   onChange?: (option: Option | null) => void;
 }
 
@@ -18,7 +19,7 @@ const customComponents = {
   IndicatorSeparator: () => null,
 };
 
-const CommonSelect: React.FC<SelectProps> = ({ options, defaultValue, className, onChange }) => {
+const CommonSelect: React.FC<SelectProps> = ({ options, defaultValue, className, placeholder = "Select", onChange }) => {
   const [selectedOption, setSelectedOption] = useState<Option | undefined>(defaultValue);
 
  const customStyles = {
@@ -63,7 +64,7 @@ const CommonSelect: React.FC<SelectProps> = ({ options, defaultValue, className,
       value={selectedOption}
       onChange={handleChange}
       components={customComponents}
-      placeholder="Select"
+      placeholder={placeholder}
     />
     </div>
   );
