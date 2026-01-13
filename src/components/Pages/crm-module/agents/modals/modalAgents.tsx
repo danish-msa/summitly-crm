@@ -314,7 +314,6 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                         <div className="mb-3">
                           <label className="form-label">
                             Company Name
-                            <span className="text-danger ms-1">*</span>
                           </label>
                           <CommonSelect
                             options={Company_Name}
@@ -392,12 +391,11 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                       <div className="col-md-6">
                         <div className="mb-3">
                           <label className="form-label">
-                            Source <span className="text-danger">*</span>
+                            Source
                           </label>
                           <CommonSelect
                             options={Source}
                             className="select"
-                            defaultValue={Source[0]}
                             onChange={(value) => setFormData({ ...formData, source: value?.value || '' })}
                           />
                         </div>
@@ -405,7 +403,7 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                       <div className="col-md-12">
                         <div className="mb-0">
                           <label className="form-label">
-                            Description <span className="text-danger">*</span>
+                            Description
                           </label>
                           <textarea
                             className="form-control"
@@ -758,12 +756,11 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                       <div className="col-md-6">
                         <div className="mb-3">
                           <label className="form-label">
-                            Contact Name <span className="text-danger">*</span>
+                            Contact Name
                           </label>
                           <input
                             type="text"
                             className="form-control"
-                            required
                             value={formData.emergency_contact?.name || ''}
                             onChange={(e) => setFormData({
                               ...formData,
@@ -779,7 +776,7 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                       <div className="col-md-6">
                         <div className="mb-3">
                           <label className="form-label">
-                            Phone <span className="text-danger">*</span>
+                            Phone
                           </label>
                           <CommonPhoneInput
                             value={formData.emergency_contact?.phone}
@@ -797,12 +794,11 @@ const ModalAgents = ({ onSuccess }: ModalAgentsProps) => {
                       <div className="col-md-6">
                         <div className="mb-3">
                           <label className="form-label">
-                            Relationship <span className="text-danger">*</span>
+                            Relationship
                           </label>
                           <input
                             type="text"
                             className="form-control"
-                            required
                             value={formData.emergency_contact?.relationship || ''}
                             onChange={(e) => setFormData({
                               ...formData,
